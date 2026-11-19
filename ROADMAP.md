@@ -20,6 +20,7 @@ Symfonium, Finamp, NewPipe and TikTok._
 | 0.6 | In-app updates (on tap only), dedicated release key, R8 + ABI splits (~5.7 MB per APK) |
 | 0.7 | SFTP + SMB network storage under Files → Tools, TOFU host-key pinning, streaming into feeds |
 | 0.8 | Notes (Markdown editor + preview, Obsidian-friendly) and Archives (extract zip/tar/gz/bz2/xz/7z, compress to zip); swipe between Library and Music sub-tabs |
+| 0.10 | Office: PDF viewer (swipe, zoom, jump, search), DOCX/XLSX/PPTX viewers via XmlPullParser (no POI, +145 KB), CSV/TSV editor, Open with |
 | 0.9 | Convert with VERT: video via vertd (upload → websocket job → download → confirm), other types in the VERT web app; vert.sh default, self-hosted preset |
 
 ## Phase A: File-manager add-ons (0.6–0.10, in progress)
@@ -35,7 +36,7 @@ The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office)
 | 0.8.0 ✅ | **Notes + Archives** (merged) | Markdown/plain-text editor with preview for .md and .txt. Obsidian-friendly: wikilinks, front matter left untouched, autosave. |
 | ~~0.9.0~~ | **Archives**: shipped in 0.8.0 | Zip create/extract; tar, tar.gz and 7z extract (Commons Compress plus XZ). Guards against zip-slip and zip bombs. |
 | 0.9.0 ✅ | **Convert (VERT)** | Video goes through the vertd API (upload, then websocket job, then download). Images, audio and docs open in the VERT web app, which converts them client-side. Default https://vert.sh, with a preset for vert.example.com. |
-| 0.10.0 | **Office lite** | PDF via PdfRenderer; text and tables from DOCX/XLSX/PPTX via zip+XML (no POI, to keep the APK small); CSV table editor. |
+| 0.10.0 ✅ | **Office lite** | PDF via PdfRenderer; text and tables from DOCX/XLSX/PPTX via zip+XML (no POI, to keep the APK small); CSV table editor. |
 
 ## Phase A2: Watch (0.12–0.13)
 

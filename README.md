@@ -166,6 +166,22 @@ Every feed, the player, sharing and the duplicate finder go through `MediaSource
 (`scan()`, `playback()` → URI + headers, `byteSource()`, `delete()`, `shareUri()`), so remote
 sources can appear in the same feeds later.
 
+## Office (v0.10)
+
+- **Files → Tools → Office**, tap a document in Files (folders and the Documents category), or pick Scrollback in another app's **Open with**.
+- **PDF**: Android's built-in `PdfRenderer`. Swipe between pages, pinch or double-tap to zoom, tap the page counter to jump to a page.
+  **Search** with highlighted matches works on Android 15+ for PDFs that have a text layer. Password-protected PDFs aren't supported yet.
+- **Word (DOCX)**: paragraphs, headings, bold and italic, bulleted and numbered lists, and simple tables. Text can be selected.
+- **Excel (XLSX)**: every sheet as a grid with shared strings, inline strings, numbers and booleans. Shows cached formula
+  results; number and date formats aren't applied. The grid shows up to 5,000 rows × 200 columns.
+- **PowerPoint (PPTX)**: slide titles, text, pictures and speaker notes, in slide order.
+- **CSV / TSV**: a table editor. Tap a cell to edit it, long-press a row to insert or delete, and add rows and columns. **Save**
+  writes the file back; if the location is read-only, **Save as** makes a copy. Comma, semicolon and tab separators are detected.
+- **Text and Markdown** open in the Notes editor.
+- **Why no Apache POI:** OOXML files are zips of XML. The viewers read only the parts they need with the platform's
+  `XmlPullParser`, so there are no new runtime dependencies. The whole suite adds about 145 KB to each APK; POI would add
+  several MB even after R8. Older binary `.doc`/`.xls`/`.ppt` files aren't supported. They open in another app through the open-in icon.
+
 ## Convert with VERT (v0.9)
 
 - **Files → Tools → Convert (VERT)**, or select a file in Files and tap **Convert**.
