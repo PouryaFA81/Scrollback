@@ -125,5 +125,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.org.json)
+    testImplementation(libs.kxml2)
     testImplementation(libs.okhttp.mockwebserver)
 }
