@@ -278,7 +278,7 @@ private fun MainTabs(
                         }
                     }
                     "pictures" -> PicturesScreen(onOpen = openFeed)
-                    "files" -> FilesHomeScreen(onBrowse = openBrowse, onCategory = openCategory, onOpenTool = openTool)
+                    "files" -> FilesHomeScreen(onBrowse = openBrowse, onCategory = openCategory, onOpenTool = openTool, onOpenDoc = { openTool("doc?file=${FileRoute.encodeFile(it)}") })
                     "music" -> if (settings.showMusic) MusicScreen(onOpenList = openMusicList, onOpenPlaylist = openPlaylist, onOpenPlayer = openPlayer, onOpenServers = openServers) else androidx.compose.runtime.LaunchedEffect(Unit) { tab = "feed" }
                     else -> LibraryScreen(onOpen = openFeed, onOpenPlaylist = openPlaylist, onOpenDuplicates = openDuplicates)
                 }

@@ -206,13 +206,17 @@ class FileRepository(private val context: Context, private val storage: app.scro
             Category.APKS -> Triple(files, "${MediaStore.Files.FileColumns.MIME_TYPE} = ?", arrayOf("application/vnd.android.package-archive"))
             Category.DOCUMENTS -> Triple(
                 files,
-                "${MediaStore.Files.FileColumns.MIME_TYPE} LIKE 'text/%' OR ${MediaStore.Files.FileColumns.MIME_TYPE} IN (?,?,?,?,?,?,?,?,?)",
+                // Bound arguments; also match .csv/.tsv by name (CSV files were missing from Documents in 0.10).
+                "${MediaStore.Files.FileColumns.MIME_TYPE} LIKE ? OR ${MediaStore.Files.FileColumns.MIME_TYPE} IN (?,?,?,?,?,?,?,?,?,?,?,?)" +
+                    " OR ${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ? OR ${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ?",
                 arrayOf(
+                    "text/%", "text/csv", "text/comma-separated-values", "text/tab-separated-values",
                     "application/pdf", "application/msword", "application/vnd.ms-excel", "application/vnd.ms-powerpoint",
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                     "application/vnd.oasis.opendocument.text", "application/epub+zip",
+                    "%.csv", "%.tsv",
                 ),
             )
         }

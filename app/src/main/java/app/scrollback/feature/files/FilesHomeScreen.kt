@@ -114,6 +114,7 @@ fun FilesHomeScreen(
     onBrowse: (FileNode) -> Unit,
     onCategory: (Category) -> Unit,
     onOpenTool: (String) -> Unit = {},
+    onOpenDoc: ((FileNode) -> Unit)? = null,
 ) {
     val container = LocalContainer.current
     val files = container.files
@@ -192,7 +193,7 @@ fun FilesHomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(SbSpace.s),
                     ) {
                         recent.forEach { n ->
-                            Column(Modifier.width(96.dp).clip(SbRadius.Card).clickable { openWith(ctx, n) }) {
+                            Column(Modifier.width(96.dp).clip(SbRadius.Card).clickable { if (onOpenDoc != null && app.scrollback.office.OfficeFormat.detect(n.name) != null) onOpenDoc(n) else openWith(ctx, n) }) {
                                 FileThumb(n, Modifier.size(96.dp).clip(RoundedCornerShape(16.dp)), iconSize = 32.dp)
                                 Text(n.name, style = MaterialTheme.typography.labelSmall, color = SbColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(4.dp))
                             }

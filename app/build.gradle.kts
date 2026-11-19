@@ -120,6 +120,7 @@ dependencies {
     implementation(libs.bouncycastle.pkix)
     implementation(libs.commons.compress)
     implementation(libs.xz)
+    implementation(libs.nanohttpd)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)
