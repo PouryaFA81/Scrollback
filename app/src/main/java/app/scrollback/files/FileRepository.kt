@@ -299,6 +299,8 @@ class FileRepository(private val context: Context, private val storage: app.scro
         try {
             val out = backend(node).openOutput(node) ?: return@withContext false
             out.use { it.write(text.toByteArray(Charsets.UTF_8)) }
+            // Raw-path writes bypass MediaStore: rescan so Documents and Recent stay current.
+            if (node.kind == NodeKind.RAW) android.media.MediaScannerConnection.scanFile(context, arrayOf(node.id), null, null)
             true
         } catch (e: Exception) { _errors.tryEmit(describe(e)); false }
     }

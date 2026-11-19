@@ -58,7 +58,15 @@ class Discovery(
     /** Multicast announcement (sent a few times; UDP on Wi-Fi drops packets). */
     fun announce() {
         if (!running.get()) return
-        io.execute { for (i in 0 until 3) { if (!running.get()) return@execute; send(self().toJson(full = true, announce = true)); Thread.sleep(300) } }
+        submit {
+            try { for (i in 0 until 3) { if (!running.get()) return@submit; send(self().toJson(full = true, announce = true)); Thread.sleep(300) } }
+            catch (_: InterruptedException) {}
+        }
+    }
+
+    /** Background task that never crashes the app (pool may be shut down when the screen closes). */
+    private fun submit(block: () -> Unit) {
+        runCatching { io.execute { runCatching(block) } }
     }
 
     private fun send(json: JSONObject) {
@@ -88,7 +96,7 @@ class Discovery(
             val host = p.address.hostAddress ?: continue
             onPeer(Peer(info, host))
             val announce = o.optBoolean("announce", o.optBoolean("announcement", false))
-            if (announce) io.execute {
+            if (announce) submit {
                 val ok = runCatching { client.register(me, host, info.port, info.protocol) }.getOrNull() != null
                 if (!ok) send(me.toJson(full = true, announce = false))
             }

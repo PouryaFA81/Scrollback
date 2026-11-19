@@ -57,6 +57,7 @@ data class TextMessage(val from: String, val text: String)
 data class Received(val name: String, val uri: String, val mime: String, val at: Long)
 
 data class NearbyState(
+    val needsPermission: Boolean = false,
     val running: Boolean = false, val error: String? = null, val scanning: Boolean = false,
     val peers: List<Peer> = emptyList(), val self: DeviceInfo? = null, val addresses: List<String> = emptyList(),
 )
@@ -141,8 +142,24 @@ class NearbyManager(
         scope.launch(Dispatchers.IO) { startNow() }
     }
 
+    /** Android 17+: LAN sockets need ACCESS_LOCAL_NETWORK (runtime, NEARBY_DEVICES group). */
+    fun hasLocalNetworkAccess(): Boolean = Build.VERSION.SDK_INT < 37 ||
+        context.checkSelfPermission(LOCAL_NETWORK) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    /** After the permission is granted: rebind sockets and search again. */
+    fun restart() = scope.launch(Dispatchers.IO) {
+        synchronized(this@NearbyManager) {
+            if (active) return@launch
+            discovery?.shutdown(); discovery = null
+            server?.stop(); server = null
+            runCatching { lock?.release() }; lock = null
+        }
+        startNow()
+    }
+
     @Synchronized private fun startNow() {
         if (server != null || holders == 0 && !active) return
+        _state.update { it.copy(needsPermission = !hasLocalNetworkAccess()) }
         try {
             val wifi = context.applicationContext.getSystemService(WifiManager::class.java)
             lock = wifi?.createMulticastLock("scrollback-nearby")?.apply { setReferenceCounted(false); acquire() }
@@ -151,6 +168,7 @@ class NearbyManager(
             server = s
             discovery = Discovery(::selfInfo, client) { p -> addPeer(p) }.also { it.start() }
             _state.update { it.copy(running = true, error = null, self = selfInfo(), addresses = Discovery.localAddresses()) }
+            if (hasLocalNetworkAccess()) refresh(scan = true)
         } catch (e: Exception) {
             lock?.release(); lock = null
             _state.update { it.copy(running = false, error = if (e is java.net.BindException) "Port ${LocalSend.PORT} is in use (is another LocalSend app open?)" else e.message ?: "Can't start") }
@@ -363,5 +381,8 @@ class NearbyManager(
         }
     }
 
-    companion object { private const val PIN_ID = "nearby:pin" }
+    companion object {
+        private const val PIN_ID = "nearby:pin"
+        const val LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
+    }
 }

@@ -110,6 +110,22 @@ fun NearbyScreen(onBack: () -> Unit) {
 
     DisposableEffect(Unit) { m.acquire(); onDispose { m.release() } }
 
+    // Android 17+: local network access is a runtime permission; notifications show transfer progress.
+    val perms = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
+        if (res[app.scrollback.nearby.NearbyManager.LOCAL_NETWORK] == true) m.restart()
+    }
+    fun askPermissions() = perms.launch(buildList {
+        if (android.os.Build.VERSION.SDK_INT >= 37) add(app.scrollback.nearby.NearbyManager.LOCAL_NETWORK)
+        add(android.Manifest.permission.POST_NOTIFICATIONS)
+    }.toTypedArray())
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        if (m.state.value.needsPermission && m.hasLocalNetworkAccess()) m.restart()
+    }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val notif = ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!m.hasLocalNetworkAccess() || !notif) askPermissions()
+    }
+
     var editAlias by remember { mutableStateOf(false) }
     var editPin by remember { mutableStateOf(false) }
     var addAddress by remember { mutableStateOf(false) }
@@ -137,6 +153,16 @@ fun NearbyScreen(onBack: () -> Unit) {
         LazyColumn(modifier = mod, state = list, contentPadding = PaddingValues(bottom = bottomPad)) {
             item { LargeTitle("Nearby share", "Send and receive files on the same Wi-Fi. Works with LocalSend and RSend.") }
 
+            if (state.needsPermission && !m.hasLocalNetworkAccess()) item {
+                SectionCard {
+                    ListRow("Allow local network access", subtitle = "Android needs this permission to find and talk to devices on your Wi-Fi. Tap to allow.",
+                        leading = { Icon(Icons.Outlined.Lock, null, tint = SbColors.Accent) },
+                        onClick = { askPermissions() })
+                    ListRow("Open app settings", subtitle = "If the prompt doesn't appear: Permissions → Nearby devices",
+                        leading = { Icon(Icons.Outlined.Badge, null, tint = SbColors.TextSecondary) },
+                        onClick = { ctx.startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${ctx.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) })
+                }
+            }
             item {
                 SectionCard {
                     val sub = when {

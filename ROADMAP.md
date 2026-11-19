@@ -21,6 +21,7 @@ Symfonium, Finamp, NewPipe and TikTok._
 | 0.7 | SFTP + SMB network storage under Files → Tools, TOFU host-key pinning, streaming into feeds |
 | 0.8 | Notes (Markdown editor + preview, Obsidian-friendly) and Archives (extract zip/tar/gz/bz2/xz/7z, compress to zip); swipe between Library and Music sub-tabs |
 | 0.10 | Office: PDF viewer (swipe, zoom, jump, search), DOCX/XLSX/PPTX viewers via XmlPullParser (no POI, +145 KB), CSV/TSV editor, Open with |
+| 0.11 | Nearby share: LocalSend v2 (multicast + subnet scan, HTTPS self-signed + fingerprint pinning, PIN, quick save), ported from RSend; CSV in Documents; recent strip opens in Scrollback |
 | 0.9 | Convert with VERT: video via vertd (upload → websocket job → download → confirm), other types in the VERT web app; vert.sh default, self-hosted preset |
 
 ## Phase A: File-manager add-ons (0.6–0.10, in progress)
@@ -55,7 +56,7 @@ The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office)
 
 Plan: use **libVLC** via Maven (LGPL, published AAR, no NDK build on this machine), with an ABI split so arm64-v8a builds carry only arm64 libraries. Media3 stays for the feed and music. LGPL keeps the repository free to pick any license, as long as the shared libraries stay dynamically linked and replaceable. Revisit libmpv if libVLC's subtitle styling or size is a problem.
 
-## Phase A2.5: Nearby share (0.11)
+## Phase A2.5: Nearby share (0.11) ✅ shipped 0.11.0
 
 **LocalSend-compatible sharing**, based on Pourya's RSend (`PouryaFA81/rsend`, whose Android core is
 the pure-JDK `lsend` package). It follows LocalSend protocol v2: multicast discovery on

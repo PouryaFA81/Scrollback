@@ -166,6 +166,35 @@ Every feed, the player, sharing and the duplicate finder go through `MediaSource
 (`scan()`, `playback()` → URI + headers, `byteSource()`, `delete()`, `shareUri()`), so remote
 sources can appear in the same feeds later.
 
+## Nearby share (v0.11)
+
+LocalSend-compatible file sharing on the local network. It works with the official
+[LocalSend](https://localsend.org) apps and with Pourya's own **RSend**.
+
+- **Files → Tools → Nearby share**, **Send nearby** in the Files and category multi-select bars, and **Send nearby** in
+  the feed's share sheet (a chooser action on Android 14+). Scrollback also shows up as **Nearby share** in other apps' share sheets.
+- **Discovery**: multicast announcements on `224.0.0.167:53317` (with a Wi-Fi multicast lock), answered with `POST /register`.
+  There is also an HTTP(S) scan of your private /24 subnet for networks that drop multicast, and **Add by address**.
+- **Server**: HTTPS on port 53317 with a self-signed certificate (RSA-2048, CN "LocalSend User"), kept in an app-private PKCS#12.
+  The fingerprint is the SHA-256 of the DER certificate. The server answers `/api/localsend/v2/info`, `register`, `prepare-upload`, `upload`
+  and `cancel`, and runs on [NanoHTTPD](https://github.com/NanoHttpd/nanohttpd) (BSD-3-Clause). The whole feature adds about 115 KB to each APK.
+- **Client**: OkHttp. The peer's certificate is pinned to the fingerprint it announced. Our certificate is offered as a client certificate.
+- **Receiving**: an Accept/Decline dialog (or **Quick save**), an optional **PIN** (5 wrong tries lock out for a minute), and the save location
+  `Download/Scrollback` (or a folder you pick). The SHA-256 is checked when the sender includes it, and text messages show in a dialog.
+- **Battery and privacy**: the server and discovery run only while the Nearby share screen is open or a transfer is active.
+  Transfers run in a `dataSync` foreground service with a progress notification. There is no always-on background server.
+- Permissions: `CHANGE_WIFI_MULTICAST_STATE`, `ACCESS_WIFI_STATE`, `FOREGROUND_SERVICE_DATA_SYNC`, and on Android 17+
+  **`ACCESS_LOCAL_NETWORK`** (asked the first time you open Nearby share, shown as "Nearby devices"). Apps targeting API 37 can't
+  open or accept LAN connections without it. Once granted, it also covers SFTP/SMB and servers on your LAN.
+
+**Credits and licences**
+- **RSend** (Pourya's app, `PouryaFA81/rsend`): the protocol logic is a Kotlin port of its Java `lsend` package
+  (server, sender, discovery, self-signed identity, name sanitising). It is the same author's code, used with permission.
+- **LocalSend** ([localsend/localsend](https://github.com/localsend/localsend), Apache-2.0): the protocol and the app
+  this interoperates with. The [protocol spec](https://github.com/localsend/protocol) repository has no licence file. Scrollback
+  implements the published v2 protocol for interoperability and contains **no LocalSend source code**.
+  "LocalSend" is the name of that project; Scrollback isn't affiliated with it.
+
 ## Office (v0.10)
 
 - **Files → Tools → Office**, tap a document in Files (folders and the Documents category), or pick Scrollback in another app's **Open with**.
@@ -273,4 +302,6 @@ See [ROADMAP.md](ROADMAP.md) for what's next.
 ## License
 
 **TBD** — to be chosen before the repository goes public. Until then, all rights reserved.
-No third-party code is copied; SnapReel (MIT) was only a design reference. Dependencies keep their own\nlicences (AndroidX/Media3/OkHttp/Coil/sshj/smbj/Commons Compress: Apache-2.0; Bouncy Castle: MIT-style; XZ for Java: 0BSD).
+No third-party code is copied; SnapReel (MIT) was only a design reference. Dependencies keep their own
+licences (AndroidX/Media3/OkHttp/Coil/sshj/smbj/Commons Compress: Apache-2.0; Bouncy Castle: MIT-style; XZ for Java: 0BSD;
+NanoHTTPD: BSD-3-Clause). Nearby share implements the LocalSend v2 protocol (see "Nearby share" for credits).
