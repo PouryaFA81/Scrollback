@@ -328,3 +328,31 @@ object StreamSelector {
 
     private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8")
 }
+
+/**
+ * Maps Jellyfin stream indexes to Media3 track groups when playing the original file: Media3 lists
+ * embedded audio/text tracks in container order, which is the order Jellyfin reports them in.
+ * External subtitles are side-loaded with the id `jf-sub-<index>`.
+ */
+object TrackMapping {
+    const val SUB_ID_PREFIX = "jf-sub-"
+    fun subId(streamIndex: Int) = "$SUB_ID_PREFIX$streamIndex"
+
+    fun audioOrdinal(source: JfMediaSource, streamIndex: Int): Int? =
+        source.audio.indexOfFirst { it.index == streamIndex }.takeIf { it >= 0 }
+
+    private fun JfStream.embedded() = !isExternal && !deliveryMethod.equals("External", true)
+
+    fun embeddedSubOrdinal(source: JfMediaSource, streamIndex: Int): Int? {
+        val s = source.subtitles.firstOrNull { it.index == streamIndex } ?: return null
+        if (!s.embedded()) return null
+        return source.subtitles.filter { it.embedded() }.indexOf(s)
+    }
+
+    /** True when this subtitle needs the server (burn-in/transcode) instead of a client-side track. */
+    fun needsServer(source: JfMediaSource, streamIndex: Int, method: PlayMethod): Boolean {
+        val s = source.subtitles.firstOrNull { it.index == streamIndex } ?: return false
+        if (s.deliveryMethod.equals("External", true)) return false
+        return method == PlayMethod.Transcode || s.deliveryMethod.equals("Encode", true)
+    }
+}

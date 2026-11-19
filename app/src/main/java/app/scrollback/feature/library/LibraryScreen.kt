@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
+import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -88,6 +89,7 @@ fun LibraryScreen(
     onOpen: (FeedSpec, Long) -> Unit,
     onOpenPlaylist: (Long) -> Unit,
     onOpenDuplicates: () -> Unit = {},
+    onOpenWatch: () -> Unit = {},
 ) {
     val container = LocalContainer.current
     val repo = container.library
@@ -144,6 +146,15 @@ fun LibraryScreen(
                         onClick = { if (showHidden) onOpen(FeedSpec.Hidden, -1) else askPin = true },
                     )
                 }
+            }
+            full {
+                ListRow(
+                    title = "Watch",
+                    subtitle = "Movies and shows from Jellyfin",
+                    leading = { Icon(Icons.Outlined.Movie, null, tint = SbColors.TextPrimary) },
+                    onClick = onOpenWatch,
+                    modifier = Modifier.padding(bottom = SbSpace.xs),
+                )
             }
             full {
                 ListRow(

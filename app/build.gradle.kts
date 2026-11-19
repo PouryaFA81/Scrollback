@@ -22,8 +22,8 @@ android {
         applicationId = "app.scrollback"
         minSdk = 33
         targetSdk = 37
-        versionCode = 11
-        versionName = "0.11.0"
+        versionCode = 12
+        versionName = "0.12.0"
     }
 
     signingConfigs {
@@ -99,6 +99,7 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    implementation(libs.media3.hls) // v0.12: Jellyfin HLS transcoding
     implementation(libs.media3.datasource.okhttp)
     implementation(libs.media3.session)
     implementation(libs.coroutines.guava)

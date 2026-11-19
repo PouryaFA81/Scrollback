@@ -214,6 +214,35 @@ private fun AppNav() {
             val spec = MusicList.from(e.arguments?.getString("kind").orEmpty(), e.arguments?.getString("arg").orEmpty())
             MusicListScreen(spec, onBack = { nav.popBackStack() }, onOpenPlayer = { nav.navigate("player") { launchSingleTop = true } })
         }
+        // v0.12 Watch (Library → Watch): Jellyfin movies and shows.
+        composable("watch") {
+            app.scrollback.feature.watch.WatchHomeScreen(
+                onBack = { nav.popBackStack() },
+                onOpenItem = { nav.navigate("watch/item/$it") },
+                onPlay = { id, fromStart -> nav.navigate("watch/play/$id?start=${if (fromStart) 1 else 0}") },
+                onSearch = { nav.navigate("watch/search") },
+                onOpenServers = { nav.navigate("servers") },
+            )
+        }
+        composable("watch/search") {
+            app.scrollback.feature.watch.WatchSearchScreen(onBack = { nav.popBackStack() }, onOpenItem = { nav.navigate("watch/item/$it") })
+        }
+        composable("watch/item/{id}") { e ->
+            app.scrollback.feature.watch.WatchDetailScreen(
+                e.arguments?.getString("id").orEmpty(),
+                onBack = { nav.popBackStack() },
+                onOpenItem = { nav.navigate("watch/item/$it") },
+                onPlay = { id, fromStart -> nav.navigate("watch/play/$id?start=${if (fromStart) 1 else 0}") },
+            )
+        }
+        composable(
+            "watch/play/{id}?start={start}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }, navArgument("start") { type = NavType.IntType; defaultValue = 0 }),
+            enterTransition = { fadeIn(tween(200)) },
+            popExitTransition = { fadeOut(tween(200)) },
+        ) { e ->
+            app.scrollback.feature.watch.WatchPlayerScreen(e.arguments?.getString("id").orEmpty(), fromStart = e.arguments?.getInt("start") == 1, onBack = { nav.popBackStack() })
+        }
         composable(
             "player",
             enterTransition = { androidx.compose.animation.slideInVertically(tween(320)) { it } },
@@ -286,7 +315,7 @@ private fun MainTabs(
                     "pictures" -> PicturesScreen(onOpen = openFeed)
                     "files" -> FilesHomeScreen(onBrowse = openBrowse, onCategory = openCategory, onOpenTool = openTool, onOpenDoc = { openTool("doc?file=${FileRoute.encodeFile(it)}") })
                     "music" -> if (settings.showMusic) MusicScreen(onOpenList = openMusicList, onOpenPlaylist = openPlaylist, onOpenPlayer = openPlayer, onOpenServers = openServers) else androidx.compose.runtime.LaunchedEffect(Unit) { tab = "feed" }
-                    else -> LibraryScreen(onOpen = openFeed, onOpenPlaylist = openPlaylist, onOpenDuplicates = openDuplicates)
+                    else -> LibraryScreen(onOpen = openFeed, onOpenPlaylist = openPlaylist, onOpenDuplicates = openDuplicates, onOpenWatch = { openTool("watch") })
                 }
             }
             if (tab != "feed") {

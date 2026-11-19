@@ -76,6 +76,9 @@ class AppContainer(context: Context) {
     val musicServers = app.scrollback.accounts.MusicServers(accounts, servers, auth, http, sources, library, BuildConfigInfo.versionName(context))
     val musicServersReady = true
 
+    /** v0.12 Watch: Jellyfin movies and shows (same accounts as Jellyfin music). */
+    val watch = app.scrollback.watch.Watch(context, accounts, http, BuildConfigInfo.versionName(context), appScope)
+
     suspend fun signInMusicServer(type: app.scrollback.accounts.AccountType, url: String, user: String, password: String) {
         musicServers.signIn(type, url, user, password)
     }

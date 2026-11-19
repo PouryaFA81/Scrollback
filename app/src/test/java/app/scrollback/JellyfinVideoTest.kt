@@ -232,3 +232,30 @@ class JellyfinVideoTest {
         }
     }
 }
+
+class JellyfinTrackMappingTest {
+    private val src = app.scrollback.remote.jellyfin.JfParse.mediaSource(org.json.JSONObject("""
+        {"Id":"s","MediaStreams":[
+          {"Index":0,"Type":"Video"},
+          {"Index":1,"Type":"Audio","Language":"eng"},
+          {"Index":2,"Type":"Audio","Language":"jpn"},
+          {"Index":3,"Type":"Subtitle","Codec":"subrip","DeliveryMethod":"Embed"},
+          {"Index":4,"Type":"Subtitle","Codec":"srt","IsExternal":true,"DeliveryMethod":"External"},
+          {"Index":5,"Type":"Subtitle","Codec":"pgssub","DeliveryMethod":"Encode"}
+        ]}""".trimIndent()))
+
+    @org.junit.Test fun mapsStreamIndexesToMedia3Order() {
+        val m = app.scrollback.remote.jellyfin.TrackMapping
+        org.junit.Assert.assertEquals(1, m.audioOrdinal(src, 2))
+        org.junit.Assert.assertNull(m.audioOrdinal(src, 3))
+        org.junit.Assert.assertEquals(0, m.embeddedSubOrdinal(src, 3))
+        org.junit.Assert.assertNull(m.embeddedSubOrdinal(src, 4)) // external is side-loaded
+        org.junit.Assert.assertEquals(1, m.embeddedSubOrdinal(src, 5))
+        org.junit.Assert.assertEquals("jf-sub-4", m.subId(4))
+        val pm = app.scrollback.remote.jellyfin.PlayMethod.DirectPlay
+        org.junit.Assert.assertTrue(m.needsServer(src, 5, pm))
+        org.junit.Assert.assertFalse(m.needsServer(src, 3, pm))
+        org.junit.Assert.assertFalse(m.needsServer(src, 4, app.scrollback.remote.jellyfin.PlayMethod.Transcode))
+        org.junit.Assert.assertTrue(m.needsServer(src, 3, app.scrollback.remote.jellyfin.PlayMethod.Transcode))
+    }
+}
