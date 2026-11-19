@@ -12,6 +12,7 @@ object FileRoute {
         when (node.kind) {
             NodeKind.RAW -> "raw|${node.id}"
             NodeKind.REMOTE -> "rem|${node.treeUri}|${node.id}|${node.name}"
+            NodeKind.MEDIA -> "med|${node.id}|${node.name}"
             else -> "saf|${node.treeUri}|${node.id}|${node.name}"
         }
     )
@@ -35,6 +36,10 @@ object FileRoute {
             "rem" -> if (parts.size >= 4) FileNode(
                 kind = NodeKind.REMOTE, id = parts[2], name = parts.drop(3).joinToString("|"), isDir = true,
                 mime = DocumentsContract.Document.MIME_TYPE_DIR, treeUri = parts[1], path = parts[2],
+            ) else null
+            "med" -> if (parts.size >= 3) FileNode(
+                kind = NodeKind.MEDIA, id = parts[1], name = parts.drop(2).joinToString("|"), isDir = false,
+                mime = app.scrollback.files.Mime.guess(parts.drop(2).joinToString("|")),
             ) else null
             else -> null
         }

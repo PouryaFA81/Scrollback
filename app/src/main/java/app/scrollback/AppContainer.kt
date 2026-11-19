@@ -47,6 +47,8 @@ class AppContainer(context: Context) {
     /** In-app updates: GitHub Releases, only on demand (Settings → Check for update). */
     val updater = app.scrollback.update.Updater(context, http, credentials)
     val vert = app.scrollback.convert.VertService(context, http, credentials)
+    /** v0.10 office suite: document copies for the viewers, recent documents. */
+    val office = app.scrollback.office.OfficeIo(context, files)
 
     private val _session = MutableStateFlow(Session())
     val session: StateFlow<Session> = _session.asStateFlow()

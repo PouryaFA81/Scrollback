@@ -24,6 +24,13 @@ class MainActivity : ComponentActivity() {
     /** Set when launched from the music notification; the UI opens the full player. */
     val openPlayerRequests = kotlinx.coroutines.flow.MutableStateFlow(false)
 
+    /** ACTION_VIEW for a document (v0.10 office); the UI opens it in the viewer. */
+    val openDocRequests = kotlinx.coroutines.flow.MutableStateFlow<android.content.Intent?>(null)
+
+    private fun handleView(intent: android.content.Intent?) {
+        if (intent?.action == android.content.Intent.ACTION_VIEW && intent.data != null) openDocRequests.value = intent
+    }
+
     private val container by lazy { (application as ScrollbackApp).container }
     private var stoppedAt = 0L
 
@@ -34,6 +41,7 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         if (intent?.getBooleanExtra(EXTRA_OPEN_PLAYER, false) == true) openPlayerRequests.value = true
+        if (savedInstanceState == null) handleView(intent)
         container.music.attach()
 
         lifecycleScope.launch {
@@ -55,6 +63,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         if (intent.getBooleanExtra(EXTRA_OPEN_PLAYER, false)) openPlayerRequests.value = true
+        handleView(intent)
     }
 
     override fun onStop() {

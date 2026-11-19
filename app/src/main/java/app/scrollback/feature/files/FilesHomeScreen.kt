@@ -339,6 +339,12 @@ private fun ToolsCard(onOpenTool: (String) -> Unit) {
             onClick = { onOpenTool("archives") },
         )
         ListRow(
+            title = "Office",
+            subtitle = "PDF, Word, Excel, PowerPoint viewer; CSV and text editor",
+            leading = { Icon(Icons.Outlined.Description, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("office") },
+        )
+        ListRow(
             title = "Convert (VERT)",
             subtitle = "Convert videos via vertd; images, audio and docs in VERT",
             leading = { Icon(Icons.Outlined.Transform, null, tint = SbColors.TextPrimary) },

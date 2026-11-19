@@ -128,7 +128,7 @@ fun SelectionBar(actions: List<BarAction>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode) -> Unit = {}, onConvert: (FileNode) -> Unit = {}) {
+fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode) -> Unit = {}, onConvert: (FileNode) -> Unit = {}, onOpenDoc: ((FileNode) -> Unit)? = null) {
     val container = LocalContainer.current
     val files = container.files
     val ctx = LocalContext.current
@@ -195,6 +195,7 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode)
         when {
             n.isDir -> { searching = false; query = ""; stack = stack + n }
             app.scrollback.notes.NoteText.isNote(n.name) && n.size < 2_000_000 -> onOpenNote(n)
+            onOpenDoc != null && app.scrollback.office.OfficeFormat.detect(n.name).let { it != null && it != app.scrollback.office.OfficeFormat.TEXT } -> onOpenDoc(n)
             app.scrollback.files.ArchiveFormat.detect(n.name) != null -> archiveFor = n
             else -> withLocal(listOf(n)) { openWith(ctx, it.first()) }
         }
