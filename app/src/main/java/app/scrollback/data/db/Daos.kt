@@ -91,6 +91,10 @@ interface MediaDao {
     @Query("SELECT * FROM media WHERE id = :id")
     suspend fun byId(id: Long): MediaEntity?
 
+    /** v0.13 full player: the other videos in the same folder, by name (hidden ones only when unlocked). */
+    @Query("SELECT * FROM media WHERE sourceId = :sourceId AND relativePath = :relativePath AND kind = 'video' AND missing = 0 AND (hidden = 0 OR :showHidden OR id = :keepId) ORDER BY name COLLATE NOCASE")
+    suspend fun folderVideos(sourceId: Long, relativePath: String, showHidden: Boolean, keepId: Long): List<MediaEntity>
+
     @Query("SELECT id, uri, size, dateModified, missing, liked, metaUpdatedAt, remoteId FROM media WHERE sourceId = :sourceId")
     suspend fun indexRows(sourceId: Long): List<IndexRow>
 

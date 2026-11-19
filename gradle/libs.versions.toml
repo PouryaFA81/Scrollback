@@ -25,6 +25,7 @@ smbj = "0.15.0"
 bouncycastle = "1.87"
 commonsCompress = "1.28.0"
 xz = "1.12"
+libvlc = "3.7.7"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -68,6 +69,7 @@ bouncycastle-prov = { group = "org.bouncycastle", name = "bcprov-jdk18on", versi
 bouncycastle-pkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
 commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
 xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
+libvlc = { group = "org.videolan.android", name = "libvlc-all", version.ref = "libvlc" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 [plugins]

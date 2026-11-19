@@ -194,7 +194,7 @@ fun FilesHomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(SbSpace.s),
                     ) {
                         recent.forEach { n ->
-                            Column(Modifier.width(96.dp).clip(SbRadius.Card).clickable { if (onOpenDoc != null && app.scrollback.office.OfficeFormat.detect(n.name) != null) onOpenDoc(n) else openWith(ctx, n) }) {
+                            Column(Modifier.width(96.dp).clip(SbRadius.Card).clickable { if (onOpenDoc != null && app.scrollback.office.OfficeFormat.detect(n.name) != null) onOpenDoc(n) else if (isPlayable(n)) playNodes(ctx, listOf(n), n) else openWith(ctx, n) }) {
                                 FileThumb(n, Modifier.size(96.dp).clip(RoundedCornerShape(16.dp)), iconSize = 32.dp)
                                 Text(n.name, style = MaterialTheme.typography.labelSmall, color = SbColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(4.dp))
                             }

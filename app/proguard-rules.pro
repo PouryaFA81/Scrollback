@@ -32,3 +32,7 @@
 -dontwarn org.osgi.**
 -dontwarn org.apache.commons.compress.harmony.**
 -dontwarn java.lang.invoke.**
+
+# v0.13 libVLC: native code calls back into these classes by name.
+-keep class org.videolan.libvlc.** { *; }
+-dontwarn org.videolan.libvlc.**

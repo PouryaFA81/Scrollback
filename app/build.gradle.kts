@@ -66,6 +66,10 @@ android {
     }
 
     packaging {
+        // v0.13 libVLC: ARM only (x86 phones are practically gone; the player shows a notice there),
+        // and compressed in the APK (extracted on install) so downloads stay as small as possible.
+        jniLibs.excludes += setOf("lib/x86/**", "lib/x86_64/**")
+        jniLibs.useLegacyPackaging = true
         resources.pickFirsts += setOf("META-INF/LICENSE.md", "META-INF/NOTICE.md", "META-INF/LICENSE", "META-INF/NOTICE")
         resources.excludes += setOf("META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/BCKEY.*", "META-INF/BC*.SF", "META-INF/BC*.DSA", "META-INF/INDEX.LIST", "META-INF/DEPENDENCIES")
     }
@@ -122,6 +126,8 @@ dependencies {
     implementation(libs.commons.compress)
     implementation(libs.xz)
     implementation(libs.nanohttpd)
+    // v0.13: full movie player (LGPL-2.1+, dynamically linked .so files)
+    implementation(libs.libvlc)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)

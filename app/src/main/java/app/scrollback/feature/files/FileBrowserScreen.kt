@@ -28,6 +28,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.AddToPhotos
@@ -96,6 +98,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val SORTS = listOf("name" to "Name", "date" to "Date modified", "size" to "Size", "type" to "Type")
+
+/** v0.13: videos open in the full player (Scrollback Player); "Open with" in the selection bar reaches other apps. */
+fun isPlayable(n: FileNode): Boolean = !n.isDir && (n.mime.startsWith("video/") || app.scrollback.fullplayer.FullPlayer.isVideoName(n.name))
+
+fun playNodes(ctx: android.content.Context, listing: List<FileNode>, n: FileNode) {
+    val (items, idx) = app.scrollback.fullplayer.FullPlayer.fromNodes(listing, n)
+    app.scrollback.fullplayer.FullPlayer.launch(ctx, items, idx)
+}
 
 /** One action in the floating selection bar. */
 data class BarAction(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val enabled: Boolean = true, val onClick: () -> Unit)
@@ -198,6 +208,7 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode)
             app.scrollback.notes.NoteText.isNote(n.name) && n.size < 2_000_000 -> onOpenNote(n)
             onOpenDoc != null && app.scrollback.office.OfficeFormat.detect(n.name).let { it != null && it != app.scrollback.office.OfficeFormat.TEXT } -> onOpenDoc(n)
             app.scrollback.files.ArchiveFormat.detect(n.name) != null -> archiveFor = n
+            isPlayable(n) -> playNodes(ctx, shown, n)
             else -> withLocal(listOf(n)) { openWith(ctx, it.first()) }
         }
     }
@@ -260,6 +271,10 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode)
                             BarAction("Share", Icons.Outlined.Share) { val sel = selectedNodes; withLocal(sel.filter { !it.isDir }) { shareNodes(ctx, it) } },
                             *(if (onSendNearby != null) arrayOf(BarAction("Send nearby", Icons.Outlined.WifiTethering, enabled = selectedNodes.any { !it.isDir }) { val sel = selectedNodes.filter { !it.isDir }; selection = emptySet(); onSendNearby(sel) }) else emptyArray()),
                             BarAction("Compress", Icons.Outlined.FolderZip, enabled = dir.canWrite && busy == null) { compressing = selectedNodes },
+                            BarAction("Play", Icons.Outlined.PlayCircle, enabled = selectedNodes.any(::isPlayable)) {
+                                val sel = selectedNodes.filter(::isPlayable); selection = emptySet(); playNodes(ctx, sel, sel.first())
+                            },
+                            BarAction("Open with", Icons.AutoMirrored.Outlined.OpenInNew, enabled = single != null && !single.isDir) { val n = single!!; selection = emptySet(); withLocal(listOf(n)) { openWith(ctx, it.first()) } },
                             BarAction("Convert", Icons.Outlined.Transform, enabled = single != null && !single.isDir) { val n = single!!; selection = emptySet(); onConvert(n) },
                             BarAction("Info", Icons.Outlined.Info, enabled = single != null) { info = single },
                             BarAction("Add source", Icons.Outlined.AddToPhotos, enabled = single?.isDir == true) {

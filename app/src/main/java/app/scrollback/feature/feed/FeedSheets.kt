@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -193,6 +194,17 @@ fun InfoSheet(item: MediaEntity, onDismiss: () -> Unit) {
         InfoLine("Indexed", Fmt.date(ctx, item.dateAdded))
         if (item.watchCount > 0) InfoLine("Watched", "${item.watchCount}× · last ${Fmt.relative(item.lastWatchedAt)}")
         Spacer(Modifier.height(SbSpace.l))
+        if (item.isVideo) {
+            SettingsRow(
+                title = "Play in full player",
+                subtitle = "Gestures, subtitles, audio tracks, PiP and every format, with this folder as the playlist",
+                icon = Icons.Outlined.Movie,
+                onClick = {
+                    container.appScope.launch { app.scrollback.fullplayer.FullPlayer.playMedia(ctx, container, item) }
+                    close()
+                },
+            )
+        }
         SettingsRow(
             title = if (item.hidden) "Unhide" else "Hide",
             subtitle = if (settings.hasPin) "Hidden items only show after unlocking with your PIN" else "Set a PIN in Settings to use hidden items",

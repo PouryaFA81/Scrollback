@@ -113,12 +113,7 @@ sealed interface Load<out T> {
     data class Failed(val message: String) : Load<Nothing>
 }
 
-internal fun friendlyError(e: Throwable): String = when (e) {
-    is java.net.UnknownHostException -> "Can't find the server. Check the address or your connection."
-    is java.net.ConnectException, is java.net.SocketTimeoutException -> "The server isn't answering. Is it online and reachable from this network?"
-    is javax.net.ssl.SSLException -> "Secure connection failed (certificate problem)."
-    else -> e.message?.removePrefix("HTTP ")?.ifBlank { null } ?: "Something went wrong"
-}
+internal fun friendlyError(e: Throwable): String = app.scrollback.remote.jellyfin.JellyfinErrors.friendly(e)
 
 /** Loads [block] on IO whenever [keys] (or the Watch change counter) change. */
 @Composable
