@@ -36,7 +36,7 @@ class AppContainer(context: Context) {
     val dav = app.scrollback.remote.webdav.WebDavClient(http)
     val servers = app.scrollback.accounts.ServerManager(accounts, auth, http, appScope)
     val sources = MediaSourceRegistry(context, accounts, dav)
-    val library = LibraryRepository(context, db, sources)
+    val library = LibraryRepository(context, db, sources, appScope)
     val playback = app.scrollback.player.Playback(context, http, auth)
     val downloader = app.scrollback.remote.Downloader(context, http, auth)
     val sync = app.scrollback.sync.SyncEngine(db, accounts, dav)
@@ -56,13 +56,18 @@ class AppContainer(context: Context) {
         appScope.launch { library.ensurePlaylistUuids() }
     }
 
-    /** Subsonic/Jellyfin clients (phase 4). */
-    val musicServersReady = false
+    /** Subsonic/OpenSubsonic and Jellyfin clients. */
+    val musicServers = app.scrollback.accounts.MusicServers(accounts, servers, auth, http, sources, library, BuildConfigInfo.versionName(context))
+    val musicServersReady = true
 
-    suspend fun signInMusicServer(type: app.scrollback.accounts.AccountType, url: String, user: String, password: String): Unit =
-        throw UnsupportedOperationException("Music servers arrive in v0.4")
+    suspend fun signInMusicServer(type: app.scrollback.accounts.AccountType, url: String, user: String, password: String) {
+        musicServers.signIn(type, url, user, password)
+    }
 
-    suspend fun addMusicServerSource(accountId: String): Unit = Unit
+    suspend fun addMusicServerSource(accountId: String) = musicServers.addSource(accountId)
+
+    /** UI-side handle on the background music service. */
+    val music = app.scrollback.player.MusicPlayer(context, appScope, library)
 
     private var lastSync = 0L
 

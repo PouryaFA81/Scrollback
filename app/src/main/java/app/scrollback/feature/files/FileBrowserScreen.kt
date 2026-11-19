@@ -44,7 +44,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.ViewList
+import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -200,7 +200,7 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
                 }
             }
             GlassIconButton(
-                if (settings.filesGrid) Icons.Outlined.ViewList else Icons.Outlined.GridView, "Layout",
+                if (settings.filesGrid) Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView, "Layout",
                 { container.appScope.launch { container.settings.setFilesGrid(!settings.filesGrid) } }, size = 40.dp, hazeState = haze,
             )
         },

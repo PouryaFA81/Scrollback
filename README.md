@@ -7,7 +7,7 @@ indexes the folders you pick and plays them in a full-screen vertical feed — s
 order you saved them — with likes, playlists, notes, tags and search. Local folders never leave the
 device; an optional Nextcloud account can stream more media and sync your library.
 
-> Status: **v0.3 (phase 3)** — early, personal project. Android 13+ (minSdk 33).
+> Status: **v0.4 (phase 4)** — early, personal project. Android 13+ (minSdk 33).
 
 ## Features (v1)
 
@@ -77,6 +77,29 @@ Optional — Scrollback is fully usable offline and without any account. Setting
   are shown on the account and never block the app. Plain `http://` is allowed only when typed
   explicitly (for LAN servers); `https://` is the default.
 
+## Music (v0.4)
+
+A **Music** section (hide it in Settings → Music) built on the same index, likes, playlists and tags:
+
+- **Sources:** audio in your local folders (tags read with `MediaMetadataRetriever`, embedded cover art
+  via a small Coil fetcher), Nextcloud folders (streamed over WebDAV), and music servers:
+  - **Subsonic / OpenSubsonic** (Navidrome, Nextcloud Music, Airsonic, Gonic…): token + salt auth
+    (`t = md5(password + salt)`, fresh salt per request), albums → songs, streaming and cover art.
+    **Star/unstar** mirrors likes both ways (a like made here since the last scan wins, otherwise the
+    server's star wins).
+  - **Jellyfin:** username/password are used once (`/Users/AuthenticateByName`); only the access token
+    is kept (encrypted). Audio items, streaming via the **universal audio endpoint** (direct play or
+    progressive MP3 transcode), primary images, favourites mirrored to likes.
+  - All of these are `MediaSource`s. Songs are stored as `subsonic:<account>/<id>` / `jellyfin:<account>/<id>`
+    and resolved to real URLs only at request time, so tokens never reach the DB, caches or logs.
+    Accounts live in **Settings → Servers**.
+- **Browse:** Songs, Artists, Albums, Folders, Playlists (+ Liked songs, Recently played), search.
+- **Playback:** Media3 `MediaSessionService` (`player/MusicService`) for background playback with the
+  media notification, lock-screen and Bluetooth controls; shuffle, repeat (all/one), queue (play next,
+  add, reorder, remove). A glass **mini player** floats above the bottom nav; the **full player** has
+  artwork, seek bar, like and add-to-playlist. Videos take audio focus, so music pauses while a feed plays.
+- **Future:** Jellyfin **video** libraries in the feeds; Subsonic scrobbling; lyrics.
+
 ## Stack
 
 Kotlin 2.4 · Jetpack Compose + Material 3 (dark only) · AndroidX Media3 ExoPlayer · Room · DataStore ·
@@ -118,8 +141,8 @@ app.scrollback
 ├── feature/         feed, pictures, files, library, settings (folders, duplicates), lock
 ├── files/           file manager backends (Raw java.io / SAF / MediaStore), sort, names, clipboard ops
 ├── accounts/        server accounts + Keystore-encrypted credentials, ServerManager
-├── remote/          OkHttp + RemoteAuth, WebDAV client/parser, Nextcloud Login Flow v2, downloads
-├── player/          Media3 factory: local files direct, remote via cache -> resolver -> OkHttp
+├── remote/          OkHttp + RemoteAuth, WebDAV, Nextcloud Login Flow v2, Subsonic + Jellyfin clients, downloads
+├── player/          Media3 factory (local direct, remote via cache -> resolver -> OkHttp), MusicService, MusicPlayer, AudioArt
 ├── sync/            Nextcloud library sync (LWW model + engine)
 └── ui/              theme tokens, glass components, navigation
 ```
@@ -137,7 +160,7 @@ sources can appear in the same feeds later.
    same feeds without downloading first (Media3 `DefaultHttpDataSource` with auth headers), plus
    sync of likes/notes/tags/playlists and optional offline copies. Login Flow v2 app password,
    stored encrypted. ✅ v0.3.0
-4. **Phase 4 — music player:** Media3 `MediaSessionService` for background playback and lock-screen
+4. **Phase 4 — music player (✅ v0.4.0, see above):** Media3 `MediaSessionService` for background playback and lock-screen
    controls, reusing folders, likes, playlists and tags (the index already has an `audio` kind);
    optional tab toggled in Settings; Nextcloud audio streaming later.
 

@@ -22,6 +22,7 @@ class ScrollbackApp : Application(), SingletonImageLoader.Factory {
         ImageLoader.Builder(context)
             .components {
                 add(VideoFrameDecoder.Factory())
+                add(app.scrollback.player.AudioArt.Factory())
                 add(coil3.network.okhttp.OkHttpNetworkFetcherFactory(callFactory = { container.http }))
             }
             .crossfade(true)

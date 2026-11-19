@@ -46,8 +46,16 @@ class Playback(private val context: Context, http: OkHttpClient, private val aut
 
     val dataSourceFactory: DataSource.Factory = DataSource.Factory { Routing(local.createDataSource(), remote.createDataSource(), auth) }
 
+    /** Feed player. Takes audio focus, so background music pauses while a video plays. */
     fun newPlayer(): ExoPlayer = ExoPlayer.Builder(context)
         .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+        .setAudioAttributes(
+            androidx.media3.common.AudioAttributes.Builder()
+                .setUsage(androidx.media3.common.C.USAGE_MEDIA)
+                .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MOVIE)
+                .build(),
+            true,
+        )
         .build()
 
     /** Picks the local or remote chain per opened URI. */

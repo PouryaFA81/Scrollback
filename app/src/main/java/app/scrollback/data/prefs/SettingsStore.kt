@@ -29,6 +29,8 @@ data class Settings(
     /** "name", "date", "size" or "type". */
     val filesSort: String = "name",
     val filesAscending: Boolean = true,
+    /** Show the Music section (v0.4). */
+    val showMusic: Boolean = true,
 ) {
     val hasPin: Boolean get() = pinSalt != null && pinHash != null
 }
@@ -46,6 +48,7 @@ class SettingsStore(private val context: Context) {
         val filesGrid = booleanPreferencesKey("files_grid")
         val filesSort = stringPreferencesKey("files_sort")
         val filesAsc = booleanPreferencesKey("files_ascending")
+        val showMusic = booleanPreferencesKey("show_music")
     }
 
     val settings: Flow<Settings> = context.dataStore.data.map { p ->
@@ -61,6 +64,7 @@ class SettingsStore(private val context: Context) {
             filesGrid = p[K.filesGrid] ?: false,
             filesSort = p[K.filesSort] ?: "name",
             filesAscending = p[K.filesAsc] ?: true,
+            showMusic = p[K.showMusic] ?: true,
         )
     }
 
@@ -86,6 +90,7 @@ class SettingsStore(private val context: Context) {
     suspend fun setLoopOne(v: Boolean) = context.dataStore.edit { it[K.loopOne] = v }
     suspend fun setSavedNewestFirst(v: Boolean) = context.dataStore.edit { it[K.savedNewest] = v }
     suspend fun setPicturesNewestFirst(v: Boolean) = context.dataStore.edit { it[K.picturesNewest] = v }
+    suspend fun setShowMusic(v: Boolean) = context.dataStore.edit { it[K.showMusic] = v }
     suspend fun setFilesGrid(v: Boolean) = context.dataStore.edit { it[K.filesGrid] = v }
     suspend fun setFilesSort(by: String, ascending: Boolean) = context.dataStore.edit { it[K.filesSort] = by; it[K.filesAsc] = ascending }
 }

@@ -50,7 +50,6 @@ class SafMediaSource(
                         }
                         val resolved = MediaSource.resolveMime(name, mime) ?: continue
                         val kind = MediaKind.fromMime(resolved) ?: continue
-                        if (kind == MediaKind.AUDIO) continue // phase 4: music player
                         found += ScannedEntry(
                             uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, id).toString(),
                             name = name,

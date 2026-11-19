@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 
 data class ScanState(
     val running: Boolean = false,
@@ -38,6 +39,7 @@ class LibraryRepository(
     private val context: Context,
     private val db: AppDatabase,
     private val sources: MediaSourceRegistry,
+    private val scope: kotlinx.coroutines.CoroutineScope,
 ) {
     private val sourceDao = db.sources()
     private val mediaDao = db.media()
@@ -137,7 +139,7 @@ class LibraryRepository(
                 _scanState.value = ScanState(true, entity.displayName, found)
                 val source = sourceFor(id) ?: continue
                 try {
-                    found = scanOne(id, entity.displayName, source, found)
+                    found = scanOne(id, entity.displayName, source, found, entity.lastScanAt)
                     sourceDao.setScanned(id, System.currentTimeMillis())
                 } catch (e: Exception) {
                     // Offline or server error: keep the existing index untouched (nothing is marked missing).
@@ -150,7 +152,7 @@ class LibraryRepository(
         enrichMetadata()
     }
 
-    private suspend fun scanOne(id: Long, displayName: String, source: MediaSource, foundSoFar: Int): Int {
+    private suspend fun scanOne(id: Long, displayName: String, source: MediaSource, foundSoFar: Int, lastScanAt: Long): Int {
         var found = foundSoFar
         val existing = mediaDao.indexRows(id).associateBy { it.uri }
         val seen = HashSet<Long>()
@@ -167,6 +169,7 @@ class LibraryRepository(
                     dateModified = e.dateModified.takeIf { it > 0 } ?: now, dateAdded = now,
                     thumbUri = e.thumbUri, remoteId = e.remoteId, artist = e.artist, album = e.album,
                     title = e.title, trackNo = e.trackNo, durationMs = e.durationMs,
+                    liked = e.remoteLiked == true, likedAt = if (e.remoteLiked == true) now else 0,
                 )
                 if (batch.size >= 200) { mediaDao.insertAll(batch); batch.clear() }
             } else {
@@ -176,6 +179,12 @@ class LibraryRepository(
                 }
                 if (e.thumbUri != null || e.remoteId != null || e.artist != null || e.title != null) {
                     mediaDao.setExtras(row.id, e.thumbUri, e.artist, e.album, e.title, e.trackNo, e.remoteId, e.durationMs)
+                }
+                val remoteLiked = e.remoteLiked
+                if (remoteLiked != null && remoteLiked != row.liked) {
+                    // Changed here since the last scan -> push ours; otherwise the server's star wins.
+                    if (row.metaUpdatedAt > lastScanAt && e.remoteId != null) runCatching { source.setRemoteLiked(e.remoteId, row.liked) }
+                    else mediaDao.setLiked(row.id, remoteLiked, if (remoteLiked) now else 0)
                 }
             }
         }
@@ -187,8 +196,36 @@ class LibraryRepository(
         return found
     }
 
+    /** Reads title/artist/album/track/duration (and whether there is embedded art) from local audio files. */
+    private suspend fun enrichAudioTags() = withContext(Dispatchers.IO) {
+        while (true) {
+            val batch = mediaDao.missingAudioTags(40)
+            if (batch.isEmpty()) break
+            for (m in batch) {
+                val r = MediaMetadataRetriever()
+                try {
+                    r.setDataSource(context, Uri.parse(m.uri))
+                    fun k(key: Int) = r.extractMetadata(key)?.trim()?.ifEmpty { null }
+                    val d = k(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: -1L
+                    val track = k(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)?.substringBefore('/')?.toIntOrNull() ?: 0
+                    val art = if (r.embeddedPicture != null) app.scrollback.player.AudioArt.uriFor(m.uri) else null
+                    mediaDao.setAudioTags(
+                        m.id, k(MediaMetadataRetriever.METADATA_KEY_TITLE),
+                        k(MediaMetadataRetriever.METADATA_KEY_ARTIST) ?: k(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST),
+                        k(MediaMetadataRetriever.METADATA_KEY_ALBUM), track, if (d > 0) d else -1L, art,
+                    )
+                } catch (_: Exception) {
+                    mediaDao.setAudioTags(m.id, null, null, null, 0, -1L, null)
+                } finally {
+                    runCatching { r.release() }
+                }
+            }
+        }
+    }
+
     /** Fills in duration and resolution for videos, in small batches, after a scan. */
     private suspend fun enrichMetadata() = withContext(Dispatchers.IO) {
+        enrichAudioTags()
         while (true) {
             val batch = mediaDao.missingMetadata(40)
             if (batch.isEmpty()) break
@@ -233,8 +270,27 @@ class LibraryRepository(
 
     // ---- Item actions --------------------------------------------------------------------
 
-    suspend fun setLiked(id: Long, liked: Boolean) =
+    suspend fun setLiked(id: Long, liked: Boolean) {
         mediaDao.setLiked(id, liked, if (liked) System.currentTimeMillis() else 0)
+        // Mirror to music servers (Subsonic star / Jellyfin favourite) in the background.
+        val item = mediaDao.byId(id) ?: return
+        val remoteId = item.remoteId ?: return
+        scope.launch(Dispatchers.IO) { runCatching { sourceFor(item.sourceId)?.setRemoteLiked(remoteId, liked) } }
+    }
+
+    // ---- Music ---------------------------------------------------------------------------
+
+    fun songs(showHidden: Boolean) = mediaDao.observeSongs(showHidden)
+    fun likedSongs(showHidden: Boolean) = mediaDao.observeLikedSongs(showHidden)
+    fun recentSongs(showHidden: Boolean) = mediaDao.observeRecentSongs(showHidden)
+    fun artists(showHidden: Boolean) = mediaDao.observeArtists(showHidden)
+    fun albums(showHidden: Boolean) = mediaDao.observeAlbums(showHidden)
+    fun musicFolders(showHidden: Boolean) = mediaDao.observeMusicFolders(showHidden)
+    fun artistSongs(artist: String, showHidden: Boolean) = mediaDao.observeArtistSongs(artist, showHidden)
+    fun albumSongs(album: String, showHidden: Boolean) = mediaDao.observeAlbumSongs(album, showHidden)
+    fun folderSongs(folder: String, showHidden: Boolean) = mediaDao.observeFolderSongs(folder, showHidden)
+    fun searchSongs(q: String, showHidden: Boolean) =
+        mediaDao.observeSongSearch("%${q.trim().replace("%", "").replace("_", "")}%", showHidden)
 
     suspend fun setHidden(id: Long, hidden: Boolean) = mediaDao.setHidden(id, hidden)
 

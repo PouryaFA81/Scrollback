@@ -17,6 +17,13 @@ import app.scrollback.ui.theme.ScrollbackTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        const val EXTRA_OPEN_PLAYER = "open_player"
+    }
+
+    /** Set when launched from the music notification; the UI opens the full player. */
+    val openPlayerRequests = kotlinx.coroutines.flow.MutableStateFlow(false)
+
     private val container by lazy { (application as ScrollbackApp).container }
     private var stoppedAt = 0L
 
@@ -26,6 +33,8 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        if (intent?.getBooleanExtra(EXTRA_OPEN_PLAYER, false) == true) openPlayerRequests.value = true
+        container.music.attach()
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.CREATED) {
@@ -41,6 +50,11 @@ class MainActivity : ComponentActivity() {
                 ScrollbackTheme { ScrollbackRoot() }
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_OPEN_PLAYER, false)) openPlayerRequests.value = true
     }
 
     override fun onStop() {

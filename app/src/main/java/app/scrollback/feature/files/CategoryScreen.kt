@@ -28,7 +28,7 @@ import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.ViewList
+import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -92,7 +92,7 @@ fun CategoryScreen(category: Category, onBack: () -> Unit) {
         onBack = onBack,
         actions = {
             GlassIconButton(
-                if (settings.filesGrid) Icons.Outlined.ViewList else Icons.Outlined.GridView, "Layout",
+                if (settings.filesGrid) Icons.AutoMirrored.Outlined.ViewList else Icons.Outlined.GridView, "Layout",
                 { container.appScope.launch { container.settings.setFilesGrid(!settings.filesGrid) } }, size = 40.dp, hazeState = LocalHazeState.current,
             )
         },

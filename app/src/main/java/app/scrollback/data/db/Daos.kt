@@ -6,14 +6,18 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
-private const val VISIBLE = "missing = 0 AND (hidden = 0 OR :showHidden)"
+private const val VISIBLE = "missing = 0 AND (hidden = 0 OR :showHidden) AND kind != 'audio'"
+private const val AUDIO = "kind = 'audio' AND missing = 0 AND (hidden = 0 OR :showHidden)"
+private const val ARTIST = "COALESCE(NULLIF(artist, ''), 'Unknown artist')"
+private const val ALBUM = "COALESCE(NULLIF(album, ''), 'Unknown album')"
 
 @Dao
 interface SourceDao {
     @Query(
         """SELECT s.id, s.type, s.uri, s.displayName, s.lastScanAt,
            (SELECT COUNT(*) FROM media m WHERE m.sourceId = s.id AND m.kind = 'video' AND m.missing = 0) AS videoCount,
-           (SELECT COUNT(*) FROM media m WHERE m.sourceId = s.id AND m.kind = 'image' AND m.missing = 0) AS imageCount
+           (SELECT COUNT(*) FROM media m WHERE m.sourceId = s.id AND m.kind = 'image' AND m.missing = 0) AS imageCount,
+           (SELECT COUNT(*) FROM media m WHERE m.sourceId = s.id AND m.kind = 'audio' AND m.missing = 0) AS audioCount
            FROM sources s ORDER BY s.addedAt"""
     )
     fun observeSummaries(): Flow<List<SourceSummary>>
@@ -60,14 +64,14 @@ interface MediaDao {
     @Query("SELECT * FROM media WHERE lastWatchedAt > 0 AND $VISIBLE ORDER BY lastWatchedAt DESC LIMIT 500")
     fun observeHistory(showHidden: Boolean): Flow<List<MediaEntity>>
 
-    @Query("SELECT * FROM media WHERE hidden = 1 AND missing = 0 ORDER BY dateModified DESC")
+    @Query("SELECT * FROM media WHERE hidden = 1 AND missing = 0 AND kind != 'audio' ORDER BY dateModified DESC")
     fun observeHidden(): Flow<List<MediaEntity>>
 
     @Query(
         """SELECT DISTINCT m.* FROM media m
            LEFT JOIN media_tags mt ON mt.mediaId = m.id
            LEFT JOIN tags t ON t.id = mt.tagId
-           WHERE m.missing = 0 AND (m.hidden = 0 OR :showHidden)
+           WHERE m.missing = 0 AND (m.hidden = 0 OR :showHidden) AND m.kind != 'audio'
              AND (m.name LIKE :pattern OR m.note LIKE :pattern OR m.relativePath LIKE :pattern OR t.name LIKE :pattern)
            ORDER BY m.dateModified DESC"""
     )
@@ -75,7 +79,7 @@ interface MediaDao {
 
     @Query(
         """SELECT m.* FROM media m JOIN media_tags mt ON mt.mediaId = m.id
-           WHERE mt.tagId IN (:tagIds) AND m.missing = 0 AND (m.hidden = 0 OR :showHidden)
+           WHERE mt.tagId IN (:tagIds) AND m.missing = 0 AND (m.hidden = 0 OR :showHidden) AND m.kind != 'audio'
            GROUP BY m.id HAVING COUNT(DISTINCT mt.tagId) = :tagCount
            ORDER BY m.dateModified DESC"""
     )
@@ -87,7 +91,7 @@ interface MediaDao {
     @Query("SELECT * FROM media WHERE id = :id")
     suspend fun byId(id: Long): MediaEntity?
 
-    @Query("SELECT id, uri, size, dateModified, missing FROM media WHERE sourceId = :sourceId")
+    @Query("SELECT id, uri, size, dateModified, missing, liked, metaUpdatedAt, remoteId FROM media WHERE sourceId = :sourceId")
     suspend fun indexRows(sourceId: Long): List<IndexRow>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -102,8 +106,8 @@ interface MediaDao {
     @Query("UPDATE media SET missing = :missing WHERE id IN (:ids)")
     suspend fun setMissing(ids: List<Long>, missing: Boolean)
 
-    @Query("UPDATE media SET liked = :liked, likedAt = :at, metaUpdatedAt = :at WHERE id = :id")
-    suspend fun setLiked(id: Long, liked: Boolean, at: Long)
+    @Query("UPDATE media SET liked = :liked, likedAt = :at, metaUpdatedAt = :now WHERE id = :id")
+    suspend fun setLiked(id: Long, liked: Boolean, at: Long, now: Long = System.currentTimeMillis())
 
     @Query("UPDATE media SET hidden = :hidden, metaUpdatedAt = :now WHERE id = :id")
     suspend fun setHidden(id: Long, hidden: Boolean, now: Long = System.currentTimeMillis())
@@ -130,7 +134,7 @@ interface MediaDao {
     suspend fun missingMetadata(limit: Int): List<MediaEntity>
 
     @Query(
-        """SELECT * FROM media WHERE missing = 0 AND size > 0 AND size IN
+        """SELECT * FROM media WHERE missing = 0 AND size > 0 AND uri NOT LIKE 'subsonic:%' AND uri NOT LIKE 'jellyfin:%' AND uri NOT LIKE 'http%' AND size IN
            (SELECT size FROM media WHERE missing = 0 AND size > 0 GROUP BY size HAVING COUNT(*) > 1)"""
     )
     suspend fun sameSizeCandidates(): List<MediaEntity>
@@ -143,6 +147,55 @@ interface MediaDao {
 
     @Query("SELECT * FROM media WHERE missing = 0")
     suspend fun allPresent(): List<MediaEntity>
+
+    // ---- Music ----
+    @Query("SELECT * FROM media WHERE $AUDIO ORDER BY COALESCE(NULLIF(title, ''), name) COLLATE NOCASE")
+    fun observeSongs(showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query("SELECT * FROM media WHERE $AUDIO AND liked = 1 ORDER BY likedAt DESC")
+    fun observeLikedSongs(showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query("SELECT * FROM media WHERE $AUDIO AND lastWatchedAt > 0 ORDER BY lastWatchedAt DESC LIMIT 200")
+    fun observeRecentSongs(showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query(
+        """SELECT $ARTIST AS artist, COUNT(*) AS songs, COUNT(DISTINCT $ALBUM) AS albums, MAX(thumbUri) AS cover
+           FROM media WHERE $AUDIO GROUP BY $ARTIST ORDER BY $ARTIST COLLATE NOCASE"""
+    )
+    fun observeArtists(showHidden: Boolean): Flow<List<ArtistRow>>
+
+    @Query(
+        """SELECT $ALBUM AS album, MAX(artist) AS artist, COUNT(*) AS songs, MAX(thumbUri) AS cover, MAX(dateModified) AS year
+           FROM media WHERE $AUDIO GROUP BY $ALBUM ORDER BY $ALBUM COLLATE NOCASE"""
+    )
+    fun observeAlbums(showHidden: Boolean): Flow<List<AlbumRow>>
+
+    @Query(
+        """SELECT CASE WHEN relativePath = '' THEN '/' ELSE relativePath END AS folder, COUNT(*) AS songs
+           FROM media WHERE $AUDIO GROUP BY folder ORDER BY folder COLLATE NOCASE"""
+    )
+    fun observeMusicFolders(showHidden: Boolean): Flow<List<FolderRow>>
+
+    @Query("SELECT * FROM media WHERE $AUDIO AND $ARTIST = :artist ORDER BY $ALBUM COLLATE NOCASE, trackNo, name")
+    fun observeArtistSongs(artist: String, showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query("SELECT * FROM media WHERE $AUDIO AND $ALBUM = :album ORDER BY trackNo, name")
+    fun observeAlbumSongs(album: String, showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query("SELECT * FROM media WHERE $AUDIO AND (relativePath = :folder OR (:folder = '/' AND relativePath = '')) ORDER BY trackNo, name")
+    fun observeFolderSongs(folder: String, showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query(
+        """SELECT * FROM media WHERE $AUDIO AND (title LIKE :q OR artist LIKE :q OR album LIKE :q OR name LIKE :q)
+           ORDER BY COALESCE(NULLIF(title, ''), name) COLLATE NOCASE LIMIT 300"""
+    )
+    fun observeSongSearch(q: String, showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query("SELECT * FROM media WHERE kind = 'audio' AND missing = 0 AND durationMs = 0 AND uri NOT LIKE 'http%' AND uri NOT LIKE 'subsonic:%' AND uri NOT LIKE 'jellyfin:%' LIMIT :limit")
+    suspend fun missingAudioTags(limit: Int): List<MediaEntity>
+
+    @Query("UPDATE media SET title = :title, artist = :artist, album = :album, trackNo = :trackNo, durationMs = :durationMs, thumbUri = :thumbUri WHERE id = :id")
+    suspend fun setAudioTags(id: Long, title: String?, artist: String?, album: String?, trackNo: Int, durationMs: Long, thumbUri: String?)
 
     @Query("SELECT * FROM media WHERE sourceId = :sourceId AND remoteId = :remoteId LIMIT 1")
     suspend fun byRemoteId(sourceId: Long, remoteId: String): MediaEntity?

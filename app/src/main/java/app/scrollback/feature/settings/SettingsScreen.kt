@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
@@ -131,6 +132,17 @@ fun SettingsScreen(
                         icon = if (settings.loopOne) Icons.Outlined.RepeatOne else Icons.Outlined.KeyboardDoubleArrowDown,
                         onClick = { launch { settingsStore.setLoopOne(!settings.loopOne) } },
                         trailing = { Toggle(settings.loopOne) { v -> launch { settingsStore.setLoopOne(v) } } },
+                    )
+                }
+            }
+            item {
+                SectionCard(title = "Music") {
+                    SettingsRow(
+                        "Show Music",
+                        subtitle = "Songs from your folders and music servers, with background playback",
+                        icon = Icons.Outlined.LibraryMusic,
+                        onClick = { launch { settingsStore.setShowMusic(!settings.showMusic) } },
+                        trailing = { Toggle(settings.showMusic) { v -> launch { settingsStore.setShowMusic(v) } } },
                     )
                 }
             }

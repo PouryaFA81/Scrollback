@@ -24,7 +24,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Dns
@@ -201,7 +201,7 @@ private fun AccountSheet(a: ServerAccount, onBrowse: (String) -> Unit, onDismiss
             )
         }
         RowDivider()
-        SettingsRow("Sign out", subtitle = "Forgets the credentials and this server's items. Nothing is deleted on the server.", icon = Icons.Outlined.Logout, onClick = { confirm = true })
+        SettingsRow("Sign out", subtitle = "Forgets the credentials and this server's items. Nothing is deleted on the server.", icon = Icons.AutoMirrored.Outlined.Logout, onClick = { confirm = true })
         if (confirm) {
             ConfirmDialog(
                 "Sign out of ${a.displayName}?", "Streams, likes and playlist entries for this server's items are removed from this device.", "Sign out",

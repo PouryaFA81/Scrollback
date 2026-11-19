@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shuffle
@@ -37,6 +38,13 @@ import androidx.navigation.navArgument
 import app.scrollback.data.prefs.Settings
 import app.scrollback.feature.feed.FeedScreen
 import app.scrollback.feature.files.CategoryScreen
+import app.scrollback.feature.music.MiniPlayer
+import app.scrollback.feature.music.MusicList
+import app.scrollback.feature.music.MusicListScreen
+import app.scrollback.feature.music.MusicScreen
+import app.scrollback.feature.music.PlayerScreen
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import app.scrollback.feature.servers.NextcloudBrowseScreen
 import app.scrollback.feature.servers.ServersScreen
 import app.scrollback.feature.files.FileBrowserScreen
@@ -66,6 +74,7 @@ private val TABS = listOf(
     NavItem("random", "Random", Icons.Outlined.Shuffle),
     NavItem("saved", "Saved", Icons.Outlined.VideoLibrary),
     NavItem("pictures", "Pictures", Icons.Outlined.Image),
+    NavItem("music", "Music", Icons.Outlined.LibraryMusic),
     NavItem("files", "Files", Icons.Outlined.Folder),
     NavItem("library", "Library", Icons.Outlined.CollectionsBookmark),
     NavItem("settings", "Settings", Icons.Outlined.Settings),
@@ -88,6 +97,10 @@ fun ScrollbackRoot() {
 private fun AppNav() {
     val nav = rememberNavController()
     val openFeed: (FeedSpec, Long) -> Unit = { spec, id -> nav.navigate(spec.toRoute(id)) }
+    val activity = androidx.compose.ui.platform.LocalContext.current as? app.scrollback.MainActivity
+    androidx.compose.runtime.LaunchedEffect(activity) {
+        activity?.openPlayerRequests?.collect { open -> if (open) { activity.openPlayerRequests.value = false; nav.navigate("player") { launchSingleTop = true } } }
+    }
     NavHost(
         navController = nav,
         startDestination = "tabs",
@@ -104,6 +117,8 @@ private fun AppNav() {
                 openFolders = { nav.navigate("folders") },
                 openDuplicates = { nav.navigate("duplicates") },
                 openServers = { nav.navigate("servers") },
+                openMusicList = { nav.navigate(it.route()) },
+                openPlayer = { nav.navigate("player") { launchSingleTop = true } },
                 openBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") },
                 openCategory = { nav.navigate("category/${it.name}") },
             )
@@ -141,6 +156,15 @@ private fun AppNav() {
         composable("servers") { ServersScreen(onBack = { nav.popBackStack() }, onBrowseNextcloud = { nav.navigate("nextcloud/$it") }) }
         composable("nextcloud/{account}") { e -> NextcloudBrowseScreen(e.arguments?.getString("account").orEmpty(), onBack = { nav.popBackStack() }) }
         composable("duplicates") { DuplicatesScreen(onBack = { nav.popBackStack() }) }
+        composable("music/{kind}?arg={arg}", arguments = listOf(navArgument("kind") { type = NavType.StringType }, navArgument("arg") { type = NavType.StringType; defaultValue = "" })) { e ->
+            val spec = MusicList.from(e.arguments?.getString("kind").orEmpty(), e.arguments?.getString("arg").orEmpty())
+            MusicListScreen(spec, onBack = { nav.popBackStack() }, onOpenPlayer = { nav.navigate("player") { launchSingleTop = true } })
+        }
+        composable(
+            "player",
+            enterTransition = { androidx.compose.animation.slideInVertically(tween(320)) { it } },
+            popExitTransition = { androidx.compose.animation.slideOutVertically(tween(280)) { it } },
+        ) { PlayerScreen(onBack = { nav.popBackStack() }) }
     }
 }
 
@@ -151,6 +175,8 @@ private fun MainTabs(
     openFolders: () -> Unit,
     openDuplicates: () -> Unit,
     openServers: () -> Unit,
+    openMusicList: (MusicList) -> Unit,
+    openPlayer: () -> Unit,
     openBrowse: (FileNode) -> Unit,
     openCategory: (Category) -> Unit,
 ) {
@@ -200,12 +226,19 @@ private fun MainTabs(
                     )
                     "pictures" -> PicturesScreen(onOpen = openFeed)
                     "files" -> FilesHomeScreen(onBrowse = openBrowse, onCategory = openCategory)
+                    "music" -> MusicScreen(onOpenList = openMusicList, onOpenPlaylist = openPlaylist, onOpenPlayer = openPlayer, onOpenServers = openServers)
                     "library" -> LibraryScreen(onOpen = openFeed, onOpenPlaylist = openPlaylist)
                     else -> SettingsScreen(onOpenFolders = openFolders, onOpenDuplicates = openDuplicates, onOpenServers = openServers)
                 }
             }
+            if (tab != "random" && tab != "saved") {
+                MiniPlayer(
+                    onOpen = openPlayer,
+                    modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 84.dp),
+                )
+            }
             FloatingGlassNav(
-                items = TABS,
+                items = TABS.filter { it.key != "music" || settings.showMusic },
                 selected = tab,
                 onSelect = { tab = it },
                 modifier = Modifier.align(Alignment.BottomCenter),

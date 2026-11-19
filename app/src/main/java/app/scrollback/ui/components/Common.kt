@@ -42,6 +42,8 @@ import app.scrollback.data.db.thumbModel
 import app.scrollback.ui.theme.SbColors
 import app.scrollback.ui.theme.SbSpace
 import coil3.compose.AsyncImage
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.foundation.layout.fillMaxSize
 import coil3.request.ImageRequest
 import coil3.video.videoFrameMillis
 import kotlinx.coroutines.launch
@@ -65,8 +67,13 @@ fun MediaThumb(item: MediaEntity, modifier: Modifier = Modifier, contentScale: C
             .apply { if (item.isVideo && model == item.uri) videoFrameMillis(1000) }
             .build()
     }
-    Box(modifier.background(SbColors.Surface)) {
-        if (!remoteVideoWithoutPreview) {
+    Box(modifier.background(SbColors.Surface), contentAlignment = androidx.compose.ui.Alignment.Center) {
+        if (item.kind == app.scrollback.data.db.MediaKind.AUDIO.id && item.thumbUri == null) {
+            androidx.compose.material3.Icon(
+                androidx.compose.material.icons.Icons.Outlined.MusicNote, null,
+                tint = SbColors.TextTertiary, modifier = Modifier.fillMaxSize(0.42f),
+            )
+        } else if (!remoteVideoWithoutPreview) {
             AsyncImage(model = request, contentDescription = item.name, contentScale = contentScale, modifier = Modifier.matchParentSize())
         }
     }

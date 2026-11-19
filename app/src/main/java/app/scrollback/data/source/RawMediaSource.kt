@@ -28,7 +28,6 @@ class RawMediaSource(
                 if (f.isDirectory) { stack.addLast(f); continue }
                 val mime = MediaSource.resolveMime(f.name, null) ?: continue
                 val kind = MediaKind.fromMime(mime) ?: continue
-                if (kind == MediaKind.AUDIO) continue // indexed once the music player lands
                 found += ScannedEntry(
                     uri = Uri.fromFile(f).toString(),
                     name = f.name,

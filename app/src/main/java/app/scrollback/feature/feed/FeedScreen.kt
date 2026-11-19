@@ -137,7 +137,9 @@ fun FeedScreen(
     val session by container.session.collectAsStateWithLifecycle()
     val settings by container.settings.settings.collectAsStateWithLifecycle(Settings())
     val showHidden = session.hiddenRevealed || spec == FeedSpec.Hidden
-    val list by remember(spec, showHidden) { spec.flow(repo, showHidden) }.collectAsStateWithLifecycle(null)
+    val rawList by remember(spec, showHidden) { spec.flow(repo, showHidden) }.collectAsStateWithLifecycle(null)
+    // Songs live in Music; playlists may mix both, the feed only shows videos and pictures.
+    val list = remember(rawList) { rawList?.filterNot { it.kind == app.scrollback.data.db.MediaKind.AUDIO.id } }
 
     // Order is snapshotted on first load so likes, history updates or rescans never make the feed jump.
     var order by remember(spec, showHidden) { mutableStateOf<List<Long>?>(null) }

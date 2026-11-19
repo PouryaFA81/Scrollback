@@ -149,9 +149,15 @@ data class SourceSummary(
     val lastScanAt: Long,
     val videoCount: Int,
     val imageCount: Int,
+    val audioCount: Int = 0,
 )
 
-data class IndexRow(val id: Long, val uri: String, val size: Long, val dateModified: Long, val missing: Boolean)
+/** Music browse rows. */
+data class ArtistRow(val artist: String, val songs: Int, val albums: Int, val cover: String?)
+data class AlbumRow(val album: String, val artist: String?, val songs: Int, val cover: String?, val year: Long)
+data class FolderRow(val folder: String, val songs: Int)
+
+data class IndexRow(val id: Long, val uri: String, val size: Long, val dateModified: Long, val missing: Boolean, val liked: Boolean, val metaUpdatedAt: Long, val remoteId: String?)
 
 /** Generic media kinds so the index can also hold audio for the phase 4 music player. */
 enum class MediaKind(val id: String) {

@@ -42,6 +42,8 @@ data class ScannedEntry(
     val title: String? = null,
     val trackNo: Int = 0,
     val durationMs: Long = 0,
+    /** Server-side favourite (Subsonic star / Jellyfin favourite); null when the source has none. */
+    val remoteLiked: Boolean? = null,
 )
 
 /**
@@ -76,10 +78,13 @@ interface MediaSource {
     /** A URI other apps can read via the share sheet, or null if the item must be fetched first. */
     fun shareUri(uri: String): Uri?
 
+    /** Mirrors a like to the server (Subsonic star, Jellyfin favourite). Returns false if unsupported/failed. */
+    fun setRemoteLiked(remoteId: String, liked: Boolean): Boolean = false
+
     companion object {
         val VIDEO_EXT = setOf("mp4", "m4v", "mov", "webm", "mkv", "3gp", "avi", "ts")
         val IMAGE_EXT = setOf("jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "avif", "bmp")
-        /** Recognised but not indexed until the phase 4 music player. */
+        /** Indexed for the music player (v0.4). */
         val AUDIO_EXT = setOf("mp3", "m4a", "aac", "flac", "ogg", "opus", "wav")
 
         /** Resolves a usable mime type, falling back to the file extension when providers report octet-stream. */
