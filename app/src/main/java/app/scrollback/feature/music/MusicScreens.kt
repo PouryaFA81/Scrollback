@@ -65,6 +65,7 @@ import app.scrollback.data.db.MediaEntity
 import app.scrollback.feature.feed.PlaylistSheet
 import app.scrollback.feature.library.ListRow
 import app.scrollback.ui.LocalContainer
+import app.scrollback.ui.components.swipeTabs
 import app.scrollback.ui.components.EmptyState
 import app.scrollback.ui.components.FloatingNavReserve
 import app.scrollback.ui.components.Fmt
@@ -151,7 +152,7 @@ fun MusicScreen(onOpenList: (MusicList) -> Unit, onOpenPlaylist: (Long) -> Unit,
         },
     ) { mod ->
         LazyColumn(
-            modifier = mod,
+            modifier = mod.swipeTabs(MusicTab.entries.size, tab.ordinal) { tab = MusicTab.entries[it] },
             state = list,
             contentPadding = PaddingValues(
                 start = SbSpace.m, end = SbSpace.m,

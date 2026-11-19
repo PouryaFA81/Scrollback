@@ -37,6 +37,8 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.MusicNote
@@ -322,6 +324,18 @@ private fun ToolsCard(onOpenTool: (String) -> Unit) {
             subtitle = "SFTP and SMB servers: browse, copy, stream into your feeds",
             leading = { Icon(Icons.Outlined.Dns, null, tint = SbColors.TextPrimary) },
             onClick = { onOpenTool("remotes") },
+        )
+        ListRow(
+            title = "Notes",
+            subtitle = "Markdown and text notes with preview; works with an Obsidian vault",
+            leading = { Icon(Icons.AutoMirrored.Outlined.Notes, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("notes") },
+        )
+        ListRow(
+            title = "Archives",
+            subtitle = "Extract ZIP, TAR, GZ, XZ and 7z; compress files to ZIP",
+            leading = { Icon(Icons.Outlined.FolderZip, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("archives") },
         )
     }
 }

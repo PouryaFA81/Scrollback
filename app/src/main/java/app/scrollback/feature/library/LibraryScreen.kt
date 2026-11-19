@@ -60,6 +60,7 @@ import app.scrollback.data.db.MediaEntity
 import app.scrollback.data.prefs.Settings
 import app.scrollback.feature.feed.FeedSpec
 import app.scrollback.ui.LocalContainer
+import app.scrollback.ui.components.swipeTabs
 import app.scrollback.ui.components.ConfirmDialog
 import app.scrollback.ui.components.EmptyState
 import app.scrollback.ui.components.FloatingNavReserve
@@ -118,7 +119,7 @@ fun LibraryScreen(
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             state = grid,
-            modifier = mod,
+            modifier = mod.swipeTabs(SEGMENTS.size, segment) { haptics.tick(); segment = it },
             contentPadding = PaddingValues(start = SbSpace.m, end = SbSpace.m, bottom = bottom),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),

@@ -24,3 +24,11 @@
 -dontwarn org.newsclub.**
 -dontwarn javax.el.**
 -dontwarn com.sun.**
+
+# commons-compress optional codecs we don't ship
+-dontwarn org.brotli.**
+-dontwarn com.github.luben.zstd.**
+-dontwarn org.objectweb.asm.**
+-dontwarn org.osgi.**
+-dontwarn org.apache.commons.compress.harmony.**
+-dontwarn java.lang.invoke.**

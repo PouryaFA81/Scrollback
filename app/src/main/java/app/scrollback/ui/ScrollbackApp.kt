@@ -133,7 +133,17 @@ private fun AppNav() {
         }
         composable("browse?root={root}", arguments = listOf(navArgument("root") { type = NavType.StringType; defaultValue = "" })) { entry ->
             val root = FileRoute.decode(entry.arguments?.getString("root").orEmpty())
-            if (root != null) FileBrowserScreen(root, onBack = { nav.popBackStack() }) else nav.popBackStack()
+            if (root != null) FileBrowserScreen(root, onBack = { nav.popBackStack() }, onOpenNote = { nav.navigate("note?file=${FileRoute.encodeFile(it)}") }) else nav.popBackStack()
+        }
+        composable("note?file={file}", arguments = listOf(navArgument("file") { type = NavType.StringType; defaultValue = "" })) { entry ->
+            val file = FileRoute.decode(entry.arguments?.getString("file").orEmpty())
+            if (file != null) app.scrollback.feature.notes.NoteEditorScreen(file, onBack = { nav.popBackStack() }) else nav.popBackStack()
+        }
+        composable("notes") {
+            app.scrollback.feature.notes.NotesScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate("note?file=${FileRoute.encodeFile(it)}") })
+        }
+        composable("archives") {
+            app.scrollback.feature.files.ArchivesToolScreen(onBack = { nav.popBackStack() }, onBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") })
         }
         composable("category/{cat}") { entry ->
             val cat = runCatching { Category.valueOf(entry.arguments?.getString("cat").orEmpty()) }.getOrDefault(Category.VIDEOS)

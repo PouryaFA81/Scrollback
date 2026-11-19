@@ -16,6 +16,8 @@ interface FileBackend {
     fun rename(node: FileNode, newName: String): FileNode?
     fun delete(node: FileNode): Boolean
     fun openInput(node: FileNode): InputStream?
+    /** Overwrites an existing file. */
+    fun openOutput(node: FileNode): OutputStream? = null
     /** Native move within this backend, or null when unsupported (caller falls back to copy + delete). */
     fun move(node: FileNode, fromParent: FileNode, toDir: FileNode): FileNode?
     fun exists(parent: FileNode, name: String): Boolean = list(parent).any { it.name.equals(name, ignoreCase = true) }
@@ -44,6 +46,7 @@ class RawFileBackend : FileBackend {
     override fun delete(node: FileNode): Boolean = File(node.id).deleteRecursively()
 
     override fun openInput(node: FileNode): InputStream? = runCatching { File(node.id).inputStream() }.getOrNull()
+    override fun openOutput(node: FileNode): OutputStream? = runCatching { File(node.id).outputStream() }.getOrNull()
 
     override fun move(node: FileNode, fromParent: FileNode, toDir: FileNode): FileNode? {
         val dst = File(toDir.id, node.name)
@@ -117,6 +120,7 @@ class SafFileBackend(private val resolver: ContentResolver) : FileBackend {
     override fun delete(node: FileNode): Boolean = runCatching { DocumentsContract.deleteDocument(resolver, node.uri) }.getOrDefault(false)
 
     override fun openInput(node: FileNode): InputStream? = runCatching { resolver.openInputStream(node.uri) }.getOrNull()
+    override fun openOutput(node: FileNode): OutputStream? = runCatching { resolver.openOutputStream(node.uri, "wt") }.getOrNull()
 
     override fun move(node: FileNode, fromParent: FileNode, toDir: FileNode): FileNode? {
         if (node.treeUri != toDir.treeUri) return null
@@ -156,6 +160,7 @@ class RemoteFileBackend(private val storage: app.scrollback.remote.fs.RemoteStor
     override fun delete(node: FileNode): Boolean = runCatching { storage.use(acc(node)) { it.delete(node.id, node.isDir) }; true }.getOrDefault(false)
 
     override fun openInput(node: FileNode): InputStream? = storage.use(acc(node)) { it.openRead(node.id) }
+    override fun openOutput(node: FileNode): OutputStream? = storage.use(acc(node)) { it.openWrite(node.id) }
 
     override fun move(node: FileNode, fromParent: FileNode, toDir: FileNode): FileNode? {
         if (node.treeUri != toDir.treeUri) return null

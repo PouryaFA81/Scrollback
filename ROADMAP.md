@@ -19,8 +19,11 @@ Symfonium, Finamp, NewPipe and TikTok._
 | 0.5 | IA rework: five tabs, Settings behind the gear, One UI glass chrome |
 | 0.6 | In-app updates (on tap only), dedicated release key, R8 + ABI splits (~5.7 MB per APK) |
 | 0.7 | SFTP + SMB network storage under Files → Tools, TOFU host-key pinning, streaming into feeds |
+| 0.8 | Notes (Markdown editor + preview, Obsidian-friendly) and Archives (extract zip/tar/gz/bz2/xz/7z, compress to zip); swipe between Library and Music sub-tabs |
 
-## Phase A: File-manager add-ons (0.6–0.11, in progress)
+## Phase A: File-manager add-ons (0.6–0.10, in progress)
+
+_Release order (Nov 2026): 0.8 Notes+Archives · 0.9 VERT · 0.10 Office · 0.11 Nearby share · 0.12 Jellyfin video · 0.13 movie player._
 
 The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office) so the tab bar stays at five.
 
@@ -28,19 +31,19 @@ The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office)
 |---|---|---|
 | 0.6.0 ✅ | **In-app updates + signed releases** | Runs only when you tap "Check for update". Reads GitHub Releases, verifies the package name and signing key, installs with PackageInstaller. Optional encrypted token while the repo is private. |
 | 0.7.0 ✅ | **SFTP + SMB** | sshj (password or key, host key pinned on first use) and smbj (SMB2/3). Browse, copy both ways, stream into the feeds through the media-source layer. Credentials stay encrypted in the Keystore. SMB reads still need confirming on real Samba/Windows. |
-| 0.8.0 | **Notes** | Markdown/plain-text editor with preview for .md and .txt. Obsidian-friendly: wikilinks, front matter left untouched, autosave. |
-| 0.9.0 | **Archives** | Zip create/extract; tar, tar.gz and 7z extract (Commons Compress plus XZ). Guards against zip-slip and zip bombs. |
-| 0.10.0 | **Convert (VERT)** | Video goes through the vertd API (upload, then websocket job, then download). Images, audio and docs open in the VERT web app, which converts them client-side. Default https://vert.sh, with a preset for vert.example.com. |
-| 0.11.0 | **Office lite** | PDF via PdfRenderer; text and tables from DOCX/XLSX/PPTX via zip+XML (no POI, to keep the APK small); CSV table editor. |
+| 0.8.0 ✅ | **Notes + Archives** (merged) | Markdown/plain-text editor with preview for .md and .txt. Obsidian-friendly: wikilinks, front matter left untouched, autosave. |
+| ~~0.9.0~~ | **Archives**: shipped in 0.8.0 | Zip create/extract; tar, tar.gz and 7z extract (Commons Compress plus XZ). Guards against zip-slip and zip bombs. |
+| 0.9.0 | **Convert (VERT)** | Video goes through the vertd API (upload, then websocket job, then download). Images, audio and docs open in the VERT web app, which converts them client-side. Default https://vert.sh, with a preset for vert.example.com. |
+| 0.10.0 | **Office lite** | PDF via PdfRenderer; text and tables from DOCX/XLSX/PPTX via zip+XML (no POI, to keep the APK small); CSV table editor. |
 
-## Phase A2: Watch (0.12–0.13, requested next)
+## Phase A2: Watch (0.12–0.13)
 
 | Version | What | Notes |
 |---|---|---|
-| 0.12.0 | **Full movie player** | A long-form player, separate from the swipe feed. Gestures: brightness/volume/seek swipes, double-tap seek, pinch zoom. Aspect and crop modes. Subtitles: embedded plus external SRT/ASS, with styling and delay. Audio track and audio delay. HW/SW decoding toggle, speed, A-B repeat, PiP, background audio, resume, lock controls. "Open with Scrollback" for video files. The feed keeps Media3 and hands codecs it can't play to this player. |
-| 0.13.0 | **Jellyfin video (Watch)** | Movies, Shows → Seasons → Episodes and Collections, with posters. Continue watching and resume. Played state and progress reported back (`/Sessions/Playing`, `/Progress`, `/Stopped`). Direct play when the device can decode it, otherwise Jellyfin HLS transcoding. Subtitles (embedded, external, burn-in fallback). Lives as a **Watch** section in Library (and a Library segment), not a sixth tab. |
+| 0.13.0 | **Full movie player** | A long-form player, separate from the swipe feed. Gestures: brightness/volume/seek swipes, double-tap seek, pinch zoom. Aspect and crop modes. Subtitles: embedded plus external SRT/ASS, with styling and delay. Audio track and audio delay. HW/SW decoding toggle, speed, A-B repeat, PiP, background audio, resume, lock controls. "Open with Scrollback" for video files. The feed keeps Media3 and hands codecs it can't play to this player. |
+| 0.12.0 | **Jellyfin video (Watch)** | Movies, Shows → Seasons → Episodes and Collections, with posters. Continue watching and resume. Played state and progress reported back (`/Sessions/Playing`, `/Progress`, `/Stopped`). Direct play when the device can decode it, otherwise Jellyfin HLS transcoding. Subtitles (embedded, external, burn-in fallback). Lives as a **Watch** section in Library (and a Library segment), not a sixth tab. |
 
-**Player backend decision (to confirm while building 0.12):**
+**Player backend decision (to confirm while building 0.13):**
 
 | Option | Codecs | Size (arm64 only) | License | Fit |
 |---|---|---|---|---|
@@ -50,7 +53,7 @@ The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office)
 
 Plan: use **libVLC** via Maven (LGPL, published AAR, no NDK build on this machine), with an ABI split so arm64-v8a builds carry only arm64 libraries. Media3 stays for the feed and music. LGPL keeps the repository free to pick any license, as long as the shared libraries stay dynamically linked and replaceable. Revisit libmpv if libVLC's subtitle styling or size is a problem.
 
-## Phase A2.5: Nearby share (0.14)
+## Phase A2.5: Nearby share (0.11)
 
 **LocalSend-compatible sharing**, based on Pourya's RSend (`PouryaFA81/rsend`, whose Android core is
 the pure-JDK `lsend` package). It follows LocalSend protocol v2: multicast discovery on
@@ -64,7 +67,7 @@ Scrollback, RSend and official LocalSend can then exchange files.
   so it is implemented from the public spec for interoperability and no LocalSend code is copied.
   RSend code is Pourya's own. Both are credited in the README.
 
-## Phase A3: Polish (0.15)
+## Phase A3: Polish (0.14)
 
 1. **Swipe between sub-tabs.** A HorizontalPager synced with the segmented/chip tabs: Library
    (Liked, Playlists, History, Search…), the Feed's Random|Saved, Music (Songs, Artists, Albums, Folders) and

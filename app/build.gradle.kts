@@ -22,8 +22,8 @@ android {
         applicationId = "app.scrollback"
         minSdk = 33
         targetSdk = 37
-        versionCode = 7
-        versionName = "0.7.0"
+        versionCode = 8
+        versionName = "0.8.0"
     }
 
     signingConfigs {
@@ -118,6 +118,8 @@ dependencies {
     implementation(libs.smbj)
     implementation(libs.bouncycastle.prov)
     implementation(libs.bouncycastle.pkix)
+    implementation(libs.commons.compress)
+    implementation(libs.xz)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)

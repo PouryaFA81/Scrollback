@@ -166,6 +166,25 @@ Every feed, the player, sharing and the duplicate finder go through `MediaSource
 (`scan()`, `playback()` → URI + headers, `byteSource()`, `delete()`, `shareUri()`), so remote
 sources can appear in the same feeds later.
 
+## Notes and archives (v0.8)
+
+- **Notes** (Files → Tools → Notes, or tap any `.md` / `.txt` file in Files): a Markdown and plain-text editor.
+  - Edit | Preview toggle. The preview covers headings, bold/italic/strike, code blocks, quotes, lists and
+    task lists, tables, links, `[[wikilinks]]` and `#tags`. Front matter is shown dimmed and never changed.
+  - A formatting toolbar for headings, bold, italic, strike, lists, tasks, quotes, code and links.
+  - Autosave 1.2 s after you stop typing, and again when you leave. A word count.
+  - Works on local folders, SAF folders and SFTP/SMB servers.
+  - The notes list uses a folder you pick (an **Obsidian vault works**) or the app's own Notes folder.
+- **Archives** (Files → Tools → Archives, or tap an archive in Files):
+  - Extract ZIP, TAR, TAR.GZ/BZ2/XZ, 7z and single GZ/BZ2/XZ files, either "here" or into a new folder.
+  - Select files and tap **Compress** to make a ZIP.
+  - Safe by default: existing files are never overwritten (names get " (1)"), entries that escape the
+    folder (zip-slip) are refused, symlinks and devices are skipped, and extraction stops on suspicious
+    ratios or sizes (zip bombs). Password-protected archives aren't supported yet.
+  - Libraries: Apache Commons Compress (Apache-2.0) and XZ for Java (0BSD).
+- **Swipe sub-tabs:** swipe left/right on Library and Music to move between their chips.
+  The feed doesn't do this, because horizontal drags there belong to seeking and picture zoom.
+
 ## Network storage: SFTP and SMB (v0.7)
 
 - **Files → Tools → Network storage → Add server.** Pick **SFTP** (host, port 22, start folder, user,
@@ -223,4 +242,4 @@ See [ROADMAP.md](ROADMAP.md) for what's next.
 ## License
 
 **TBD** — to be chosen before the repository goes public. Until then, all rights reserved.
-No third-party code is copied; SnapReel (MIT) was only a design reference. Dependencies keep their own\nlicences (AndroidX/Media3/OkHttp/Coil/sshj/smbj: Apache-2.0; Bouncy Castle: MIT-style).
+No third-party code is copied; SnapReel (MIT) was only a design reference. Dependencies keep their own\nlicences (AndroidX/Media3/OkHttp/Coil/sshj/smbj/Commons Compress: Apache-2.0; Bouncy Castle: MIT-style; XZ for Java: 0BSD).

@@ -41,6 +41,7 @@ import androidx.compose.material.icons.outlined.DriveFileRenameOutline
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.FolderZip
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Share
@@ -126,7 +127,7 @@ fun SelectionBar(actions: List<BarAction>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
+fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode) -> Unit = {}) {
     val container = LocalContainer.current
     val files = container.files
     val ctx = LocalContext.current
@@ -146,6 +147,8 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
     var renaming by remember { mutableStateOf<FileNode?>(null) }
     var deleting by remember { mutableStateOf<List<FileNode>?>(null) }
     var info by remember { mutableStateOf<FileNode?>(null) }
+    var archiveFor by remember { mutableStateOf<FileNode?>(null) }
+    var compressing by remember { mutableStateOf<List<FileNode>?>(null) }
 
     val listing by produceState<List<FileNode>?>(null, dir.key, refresh) { value = null; value = files.list(dir) }
     val results by produceState<List<FileNode>?>(null, query, dir.key, searching) {
@@ -188,7 +191,12 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
             selection = if (n.key in selection) selection - n.key else selection + n.key
             return
         }
-        if (n.isDir) { searching = false; query = ""; stack = stack + n } else withLocal(listOf(n)) { openWith(ctx, it.first()) }
+        when {
+            n.isDir -> { searching = false; query = ""; stack = stack + n }
+            app.scrollback.notes.NoteText.isNote(n.name) && n.size < 2_000_000 -> onOpenNote(n)
+            app.scrollback.files.ArchiveFormat.detect(n.name) != null -> archiveFor = n
+            else -> withLocal(listOf(n)) { openWith(ctx, it.first()) }
+        }
     }
     fun longPress(n: FileNode) { haptics.tick(); selection = selection + n.key }
     fun done(msg: String) { Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show(); refresh++; selection = emptySet() }
@@ -247,6 +255,7 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
                             BarAction("Rename", Icons.Outlined.DriveFileRenameOutline, enabled = single != null && dir.canWrite) { renaming = single },
                             BarAction("Delete", Icons.Outlined.Delete, enabled = dir.canWrite) { deleting = selectedNodes },
                             BarAction("Share", Icons.Outlined.Share) { val sel = selectedNodes; withLocal(sel.filter { !it.isDir }) { shareNodes(ctx, it) } },
+                            BarAction("Compress", Icons.Outlined.FolderZip, enabled = dir.canWrite && busy == null) { compressing = selectedNodes },
                             BarAction("Info", Icons.Outlined.Info, enabled = single != null) { info = single },
                             BarAction("Add source", Icons.Outlined.AddToPhotos, enabled = single?.isDir == true) {
                                 val n = single!!
@@ -359,6 +368,35 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
         )
     }
     info?.let { FileInfoSheet(it) { info = null } }
+    archiveFor?.let { a ->
+        ArchiveActionsDialog(
+            a, canExtractHere = dir.canWrite && busy == null,
+            onExtract = { intoFolder ->
+                archiveFor = null
+                scope.launch {
+                    busy = "Extracting ${a.name}…"
+                    val r = runCatching { files.extract(a, dir, intoFolder) { busy = it } }
+                    busy = null
+                    r.onSuccess { (_, res) -> done("Extracted ${res.files} file${if (res.files == 1) "" else "s"}" + if (res.skipped > 0) " (${res.skipped} skipped)" else "") }
+                        .onFailure { done(extractMessage(it)) }
+                }
+            },
+            onOpenWith = { archiveFor = null; withLocal(listOf(a)) { openWith(ctx, it.first()) } },
+            onDismiss = { archiveFor = null },
+        )
+    }
+    compressing?.let { nodes ->
+        val suggested = (nodes.singleOrNull()?.name?.let { if (it.contains('.') && !nodes[0].isDir) it.substringBeforeLast('.') else it } ?: dir.name.ifBlank { "Archive" }) + ".zip"
+        TextInputDialog("Compress ${nodes.size} item${if (nodes.size == 1) "" else "s"}", suggested, "Create zip", onConfirm = { name ->
+            if (!FileNames.isValid(name)) { Toast.makeText(ctx, "Invalid name", Toast.LENGTH_SHORT).show() }
+            else scope.launch {
+                busy = "Compressing…"
+                val r = runCatching { files.compress(nodes, dir, name) { busy = it } }
+                busy = null
+                done(if (r.getOrNull() != null) "Created ${r.getOrNull()!!.name}" else "Couldn't create the zip" + (r.exceptionOrNull()?.message?.let { ": $it" } ?: ""))
+            }
+        }, onDismiss = { compressing = null })
+    }
 }
 
 fun LazyGridScope.full(content: @Composable () -> Unit) = item(span = { GridItemSpan(maxLineSpan) }) { content() }

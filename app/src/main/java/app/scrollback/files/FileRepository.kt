@@ -278,4 +278,151 @@ class FileRepository(private val context: Context, private val storage: app.scro
 
     /** Resolves a raw path or SAF node to a root node + breadcrumb stack for deep links. */
     fun rawNode(path: String): FileNode = FileNode.raw(File(path))
+
+    // ---- Text (notes editor) ----
+
+    /** Reads a text file up to [max] bytes; null if larger or unreadable. */
+    suspend fun readText(node: FileNode, max: Int = 2_000_000): String? = withContext(Dispatchers.IO) {
+        try {
+            backend(node).openInput(node)?.use { s ->
+                val bytes = s.readNBytes(max + 1)
+                if (bytes.size > max) null else String(bytes, Charsets.UTF_8).removePrefix("\uFEFF")
+            }
+        } catch (e: Exception) { _errors.tryEmit(describe(e)); null }
+    }
+
+    suspend fun writeText(node: FileNode, text: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val out = backend(node).openOutput(node) ?: return@withContext false
+            out.use { it.write(text.toByteArray(Charsets.UTF_8)) }
+            true
+        } catch (e: Exception) { _errors.tryEmit(describe(e)); false }
+    }
+
+    suspend fun createTextFile(dir: FileNode, name: String, text: String): FileNode? = withContext(Dispatchers.IO) {
+        try {
+            val b = backend(dir)
+            val existing = b.list(dir).map { it.name.lowercase() }.toSet()
+            val unique = FileNames.unique(name, false) { it.lowercase() in existing }
+            val (node, out) = b.createFile(dir, unique, Mime.guess(unique)) ?: return@withContext null
+            out.use { it.write(text.toByteArray(Charsets.UTF_8)) }
+            node
+        } catch (e: Exception) { _errors.tryEmit(describe(e)); null }
+    }
+
+    /** Text notes (.md/.txt) under [root] with their folder relative to it, newest first. */
+    suspend fun listNotes(root: FileNode, depth: Int = 4, limit: Int = 1000): List<Pair<FileNode, String>> = withContext(Dispatchers.IO) {
+        val out = mutableListOf<Pair<FileNode, String>>()
+        fun walk(dir: FileNode, rel: String, d: Int) {
+            if (out.size >= limit) return
+            val children = runCatching { backend(dir).list(dir) }.getOrDefault(emptyList())
+            for (c in children) {
+                if (c.isDir) { if (d < depth && !c.name.startsWith(".")) walk(c, if (rel.isEmpty()) c.name else "$rel/${c.name}", d + 1) }
+                else if (app.scrollback.notes.NoteText.isNote(c.name)) out += c to rel
+            }
+        }
+        walk(root, "", 0)
+        out.sortedByDescending { it.first.modified }
+    }
+
+    // ---- Archives ----
+
+    /** Extracts [archive] into [dest] (or a new sub-folder named after it). Returns the folder written to. */
+    suspend fun extract(
+        archive: FileNode, dest: FileNode, intoFolder: Boolean, onProgress: (String) -> Unit = {},
+    ): Pair<FileNode, ExtractResult> = withContext(Dispatchers.IO) {
+        val format = ArchiveFormat.detect(archive.name) ?: throw java.io.IOException("Not a supported archive")
+        val db = backend(dest)
+        val target = if (intoFolder && format.isArchive) {
+            val existing = db.list(dest).map { it.name.lowercase() }.toSet()
+            val name = FileNames.unique(ArchiveFormat.baseName(archive.name), true) { it.lowercase() in existing }
+            db.createDir(dest, name) ?: throw java.io.IOException("Couldn't create the folder")
+        } else dest
+        var local: File? = null
+        try {
+            if (format == ArchiveFormat.SEVEN_Z) {
+                local = if (archive.kind == NodeKind.RAW) File(archive.id) else {
+                    onProgress("Preparing ${archive.name}…")
+                    File(context.cacheDir, "extract-${System.nanoTime()}.7z").also { f ->
+                        val input = backend(archive).openInput(archive) ?: throw java.io.IOException("Couldn't read the archive")
+                        input.use { i -> f.outputStream().use { i.copyTo(it, 256 * 1024) } }
+                    }
+                }
+            }
+            val sink = BackendSink(db, target)
+            var last = 0L
+            val r = Archives.extract(format, archive.name, archive.size, {
+                backend(archive).openInput(archive) ?: throw java.io.IOException("Couldn't read the archive")
+            }, local, sink) { path ->
+                val now = System.currentTimeMillis()
+                if (now - last > 150) { last = now; onProgress("Extracting ${path.substringAfterLast('/')}") }
+            }
+            target to r
+        } finally {
+            if (local != null && archive.kind != NodeKind.RAW) local.delete()
+        }
+    }
+
+    /** Zips [nodes] (folders recursively) into [dir]/[name]. */
+    suspend fun compress(nodes: List<FileNode>, dir: FileNode, name: String, onProgress: (String) -> Unit = {}): FileNode? = withContext(Dispatchers.IO) {
+        val items = mutableListOf<Archives.ZipItem>()
+        fun add(n: FileNode, prefix: String) {
+            val path = if (prefix.isEmpty()) n.name else "$prefix/${n.name}"
+            if (n.isDir) {
+                items += Archives.ZipItem(path, true) { null }
+                backend(n).list(n).forEach { add(it, path) }
+            } else items += Archives.ZipItem(path, false) { backend(n).openInput(n) }
+        }
+        nodes.forEach { add(it, "") }
+        val db = backend(dir)
+        val existing = db.list(dir).map { it.name.lowercase() }.toSet()
+        val fileName = FileNames.unique(if (name.lowercase().endsWith(".zip")) name else "$name.zip", false) { it.lowercase() in existing }
+        val (node, out) = db.createFile(dir, fileName, "application/zip") ?: return@withContext null
+        try {
+            var last = 0L
+            Archives.createZip(out, items) { p ->
+                val now = System.currentTimeMillis()
+                if (now - last > 150) { last = now; onProgress("Adding ${p.substringAfterLast('/')}") }
+            }
+            node
+        } catch (e: Exception) {
+            runCatching { db.delete(node) }
+            throw e
+        }
+    }
+
+    /** Writes archive entries through any backend, creating folders on demand and never overwriting. */
+    private class BackendSink(private val b: FileBackend, root: FileNode) : ArchiveSink {
+        private val dirs = HashMap<String, FileNode>().apply { put("", root) }
+        private val names = HashMap<String, MutableSet<String>>()
+
+        private fun namesIn(path: String): MutableSet<String> = names.getOrPut(path) {
+            b.list(dirs.getValue(path)).map { it.name.lowercase() }.toMutableSet()
+        }
+
+        private fun ensure(path: String): FileNode {
+            dirs[path]?.let { return it }
+            val parentPath = ArchivePaths.parent(path)
+            val parent = ensure(parentPath)
+            val name = ArchivePaths.name(path)
+            val existing = if (name.lowercase() in namesIn(parentPath)) b.list(parent).firstOrNull { it.isDir && it.name.equals(name, true) } else null
+            val node = existing ?: (b.createDir(parent, name) ?: throw java.io.IOException("Couldn't create folder $path")).also {
+                namesIn(parentPath).add(name.lowercase()); names[path] = mutableSetOf()
+            }
+            dirs[path] = node
+            return node
+        }
+
+        override fun dir(path: String) { ensure(path) }
+
+        override fun file(path: String, input: java.io.InputStream) {
+            val parentPath = ArchivePaths.parent(path)
+            val parent = ensure(parentPath)
+            val taken = namesIn(parentPath)
+            val name = FileNames.unique(ArchivePaths.name(path), false) { it.lowercase() in taken }
+            val (_, out) = b.createFile(parent, name, Mime.guess(name)) ?: throw java.io.IOException("Couldn't write $path")
+            out.use { input.copyTo(it, 256 * 1024) }
+            taken.add(name.lowercase())
+        }
+    }
 }

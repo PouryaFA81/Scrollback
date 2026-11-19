@@ -16,7 +16,13 @@ object FileRoute {
         }
     )
 
+    /** Same as [encode] but for a single file (the editor and other viewers). */
+    fun encodeFile(node: FileNode): String = Uri.encode("F" + Uri.decode(encode(node)))
+
     fun decode(arg: String): FileNode? {
+        if (arg.startsWith("F")) return decode(arg.drop(1))?.let { n ->
+            n.copy(isDir = false, mime = app.scrollback.files.Mime.guess(n.name), canWrite = true)
+        }
         val parts = arg.split('|')
         return when (parts.firstOrNull()) {
             "raw" -> FileNode.raw(File(parts.drop(1).joinToString("|"))).let {
