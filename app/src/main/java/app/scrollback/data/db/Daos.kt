@@ -1,0 +1,223 @@
+package app.scrollback.data.db
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
+
+private const val VISIBLE = "missing = 0 AND (hidden = 0 OR :showHidden)"
+
+@Dao
+interface SourceDao {
+    @Query(
+        """SELECT s.id, s.type, s.uri, s.displayName, s.lastScanAt,
+           (SELECT COUNT(*) FROM media m WHERE m.sourceId = s.id AND m.kind = 'video' AND m.missing = 0) AS videoCount,
+           (SELECT COUNT(*) FROM media m WHERE m.sourceId = s.id AND m.kind = 'image' AND m.missing = 0) AS imageCount
+           FROM sources s ORDER BY s.addedAt"""
+    )
+    fun observeSummaries(): Flow<List<SourceSummary>>
+
+    @Query("SELECT * FROM sources ORDER BY addedAt")
+    suspend fun all(): List<SourceEntity>
+
+    @Query("SELECT * FROM sources WHERE id = :id")
+    suspend fun byId(id: Long): SourceEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(source: SourceEntity): Long
+
+    @Query("SELECT * FROM sources WHERE uri = :uri")
+    suspend fun byUri(uri: String): SourceEntity?
+
+    @Query("UPDATE sources SET lastScanAt = :at WHERE id = :id")
+    suspend fun setScanned(id: Long, at: Long)
+
+    @Query("DELETE FROM sources WHERE id = :id")
+    suspend fun delete(id: Long)
+}
+
+@Dao
+interface MediaDao {
+    @Query("SELECT * FROM media WHERE kind = 'video' AND $VISIBLE ORDER BY dateModified DESC")
+    fun observeVideos(showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query(
+        """SELECT * FROM media WHERE kind = 'video' AND $VISIBLE
+           ORDER BY CASE WHEN :newestFirst THEN -dateModified ELSE dateModified END, id"""
+    )
+    fun observeVideosByDate(newestFirst: Boolean, showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query(
+        """SELECT * FROM media WHERE kind = 'image' AND $VISIBLE
+           ORDER BY CASE WHEN :newestFirst THEN -dateModified ELSE dateModified END, id"""
+    )
+    fun observeImages(newestFirst: Boolean, showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query("SELECT * FROM media WHERE liked = 1 AND $VISIBLE ORDER BY likedAt DESC")
+    fun observeLiked(showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query("SELECT * FROM media WHERE lastWatchedAt > 0 AND $VISIBLE ORDER BY lastWatchedAt DESC LIMIT 500")
+    fun observeHistory(showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query("SELECT * FROM media WHERE hidden = 1 AND missing = 0 ORDER BY dateModified DESC")
+    fun observeHidden(): Flow<List<MediaEntity>>
+
+    @Query(
+        """SELECT DISTINCT m.* FROM media m
+           LEFT JOIN media_tags mt ON mt.mediaId = m.id
+           LEFT JOIN tags t ON t.id = mt.tagId
+           WHERE m.missing = 0 AND (m.hidden = 0 OR :showHidden)
+             AND (m.name LIKE :pattern OR m.note LIKE :pattern OR m.relativePath LIKE :pattern OR t.name LIKE :pattern)
+           ORDER BY m.dateModified DESC"""
+    )
+    fun observeSearch(pattern: String, showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query(
+        """SELECT m.* FROM media m JOIN media_tags mt ON mt.mediaId = m.id
+           WHERE mt.tagId IN (:tagIds) AND m.missing = 0 AND (m.hidden = 0 OR :showHidden)
+           GROUP BY m.id HAVING COUNT(DISTINCT mt.tagId) = :tagCount
+           ORDER BY m.dateModified DESC"""
+    )
+    fun observeWithAllTags(tagIds: List<Long>, tagCount: Int, showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query("SELECT * FROM media WHERE id = :id")
+    fun observeById(id: Long): Flow<MediaEntity?>
+
+    @Query("SELECT * FROM media WHERE id = :id")
+    suspend fun byId(id: Long): MediaEntity?
+
+    @Query("SELECT id, uri, size, dateModified, missing FROM media WHERE sourceId = :sourceId")
+    suspend fun indexRows(sourceId: Long): List<IndexRow>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(items: List<MediaEntity>)
+
+    @Query(
+        """UPDATE media SET name = :name, relativePath = :relativePath, mime = :mime, size = :size,
+           dateModified = :dateModified, partialHash = NULL, fullHash = NULL, missing = 0 WHERE id = :id"""
+    )
+    suspend fun updateChanged(id: Long, name: String, relativePath: String, mime: String, size: Long, dateModified: Long)
+
+    @Query("UPDATE media SET missing = :missing WHERE id IN (:ids)")
+    suspend fun setMissing(ids: List<Long>, missing: Boolean)
+
+    @Query("UPDATE media SET liked = :liked, likedAt = :at WHERE id = :id")
+    suspend fun setLiked(id: Long, liked: Boolean, at: Long)
+
+    @Query("UPDATE media SET hidden = :hidden WHERE id = :id")
+    suspend fun setHidden(id: Long, hidden: Boolean)
+
+    @Query("UPDATE media SET note = :note WHERE id = :id")
+    suspend fun setNote(id: Long, note: String)
+
+    @Query("UPDATE media SET lastPositionMs = :positionMs WHERE id = :id")
+    suspend fun savePosition(id: Long, positionMs: Long)
+
+    @Query("UPDATE media SET lastWatchedAt = :at, watchCount = watchCount + 1 WHERE id = :id")
+    suspend fun markWatched(id: Long, at: Long)
+
+    @Query("UPDATE media SET lastWatchedAt = 0, lastPositionMs = 0")
+    suspend fun clearHistory()
+
+    @Query("UPDATE media SET durationMs = :durationMs, width = :width, height = :height WHERE id = :id")
+    suspend fun setMetadata(id: Long, durationMs: Long, width: Int, height: Int)
+
+    @Query("UPDATE media SET partialHash = COALESCE(:partial, partialHash), fullHash = COALESCE(:full, fullHash) WHERE id = :id")
+    suspend fun setHashes(id: Long, partial: String?, full: String?)
+
+    @Query("SELECT * FROM media WHERE kind = 'video' AND missing = 0 AND durationMs = 0 LIMIT :limit")
+    suspend fun missingMetadata(limit: Int): List<MediaEntity>
+
+    @Query(
+        """SELECT * FROM media WHERE missing = 0 AND size > 0 AND size IN
+           (SELECT size FROM media WHERE missing = 0 AND size > 0 GROUP BY size HAVING COUNT(*) > 1)"""
+    )
+    suspend fun sameSizeCandidates(): List<MediaEntity>
+
+    @Query("SELECT * FROM media WHERE id IN (:ids)")
+    suspend fun byIds(ids: List<Long>): List<MediaEntity>
+
+    @Query("DELETE FROM media WHERE id = :id")
+    suspend fun delete(id: Long)
+}
+
+@Dao
+interface TagDao {
+    @Query(
+        """SELECT t.id, t.name, COUNT(m.id) AS count FROM tags t
+           JOIN media_tags mt ON mt.tagId = t.id
+           JOIN media m ON m.id = mt.mediaId AND m.missing = 0 AND (m.hidden = 0 OR :showHidden)
+           GROUP BY t.id ORDER BY count DESC, t.name"""
+    )
+    fun observeTagCounts(showHidden: Boolean): Flow<List<TagCount>>
+
+    @Query("SELECT t.* FROM tags t JOIN media_tags mt ON mt.tagId = t.id WHERE mt.mediaId = :mediaId ORDER BY t.name")
+    fun observeTagsFor(mediaId: Long): Flow<List<TagEntity>>
+
+    @Query("SELECT * FROM tags WHERE name = :name")
+    suspend fun byName(name: String): TagEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(tag: TagEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertRefs(refs: List<MediaTagRef>)
+
+    @Query("DELETE FROM media_tags WHERE mediaId = :mediaId")
+    suspend fun clearRefs(mediaId: Long)
+
+    @Query("DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tagId FROM media_tags)")
+    suspend fun deleteOrphans()
+}
+
+@Dao
+interface PlaylistDao {
+    @Query(
+        """SELECT p.id, p.name,
+           (SELECT COUNT(*) FROM playlist_entries e JOIN media m ON m.id = e.mediaId
+              WHERE e.playlistId = p.id AND m.missing = 0 AND (m.hidden = 0 OR :showHidden)) AS count,
+           (SELECT m.uri FROM playlist_entries e JOIN media m ON m.id = e.mediaId
+              WHERE e.playlistId = p.id AND m.missing = 0 AND (m.hidden = 0 OR :showHidden)
+              ORDER BY e.position LIMIT 1) AS coverUri
+           FROM playlists p ORDER BY p.createdAt DESC"""
+    )
+    fun observeSummaries(showHidden: Boolean): Flow<List<PlaylistSummary>>
+
+    @Query("SELECT * FROM playlists WHERE id = :id")
+    fun observe(id: Long): Flow<PlaylistEntity?>
+
+    @Query(
+        """SELECT m.* FROM media m JOIN playlist_entries e ON e.mediaId = m.id
+           WHERE e.playlistId = :playlistId AND m.missing = 0 AND (m.hidden = 0 OR :showHidden)
+           ORDER BY e.position"""
+    )
+    fun observeItems(playlistId: Long, showHidden: Boolean): Flow<List<MediaEntity>>
+
+    @Query("SELECT playlistId FROM playlist_entries WHERE mediaId = :mediaId")
+    fun observeMembership(mediaId: Long): Flow<List<Long>>
+
+    @Insert
+    suspend fun insert(playlist: PlaylistEntity): Long
+
+    @Query("UPDATE playlists SET name = :name WHERE id = :id")
+    suspend fun rename(id: Long, name: String)
+
+    @Query("DELETE FROM playlists WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM playlist_entries WHERE playlistId = :playlistId")
+    suspend fun nextPosition(playlistId: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertEntry(entry: PlaylistEntry)
+
+    @Query("DELETE FROM playlist_entries WHERE playlistId = :playlistId AND mediaId = :mediaId")
+    suspend fun removeEntry(playlistId: Long, mediaId: Long)
+
+    @Query("UPDATE playlist_entries SET position = :position WHERE playlistId = :playlistId AND mediaId = :mediaId")
+    suspend fun setPosition(playlistId: Long, mediaId: Long, position: Int)
+
+    @Query("SELECT mediaId FROM playlist_entries WHERE playlistId = :playlistId ORDER BY position")
+    suspend fun orderedMediaIds(playlistId: Long): List<Long>
+}
