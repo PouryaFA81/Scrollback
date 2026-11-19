@@ -100,7 +100,20 @@ fun shareMedia(ctx: Context, uri: Uri, mime: String, title: String) {
         clipData = ClipData.newRawUri(title, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    ctx.startActivity(Intent.createChooser(send, title).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+    val chooser = Intent.createChooser(send, title).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    // v0.11: "Send nearby" (LocalSend) right in the share sheet.
+    val nearby = Intent(ctx, app.scrollback.MainActivity::class.java)
+        .setAction(app.scrollback.MainActivity.ACTION_NEARBY)
+        .setDataAndType(uri, mime)
+        .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    if (android.os.Build.VERSION.SDK_INT >= 34) {
+        val pi = android.app.PendingIntent.getActivity(ctx, uri.hashCode(), nearby, android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT)
+        val icon = android.graphics.drawable.Icon.createWithResource(ctx, android.R.drawable.stat_sys_upload)
+        chooser.putExtra(Intent.EXTRA_CHOOSER_CUSTOM_ACTIONS, arrayOf(android.service.chooser.ChooserAction.Builder(icon, "Send nearby", pi).build()))
+    } else {
+        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(android.content.pm.LabeledIntent(nearby, ctx.packageName, "Send nearby", android.R.drawable.stat_sys_upload)))
+    }
+    ctx.startActivity(chooser)
 }
 
 /** Frosted bottom sheet (translucent, 28dp corners, light top border). */

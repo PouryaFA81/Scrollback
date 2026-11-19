@@ -19,6 +19,8 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_OPEN_PLAYER = "open_player"
+        /** Opens the Nearby share screen (notification, "Send nearby" in the share sheet). */
+        const val ACTION_NEARBY = "app.scrollback.action.NEARBY"
     }
 
     /** Set when launched from the music notification; the UI opens the full player. */
@@ -27,8 +29,26 @@ class MainActivity : ComponentActivity() {
     /** ACTION_VIEW for a document (v0.10 office); the UI opens it in the viewer. */
     val openDocRequests = kotlinx.coroutines.flow.MutableStateFlow<android.content.Intent?>(null)
 
+    /** v0.11: open Nearby share (possibly with files to send). */
+    val nearbyRequests = kotlinx.coroutines.flow.MutableStateFlow(false)
+
     private fun handleView(intent: android.content.Intent?) {
         if (intent?.action == android.content.Intent.ACTION_VIEW && intent.data != null) openDocRequests.value = intent
+        handleNearby(intent)
+    }
+
+    private fun handleNearby(intent: android.content.Intent?) {
+        val i = intent ?: return
+        val action = i.action
+        if (action != ACTION_NEARBY && action != android.content.Intent.ACTION_SEND && action != android.content.Intent.ACTION_SEND_MULTIPLE) return
+        val uris = buildList<android.net.Uri> {
+            i.data?.let(::add)
+            androidx.core.content.IntentCompat.getParcelableExtra(i, android.content.Intent.EXTRA_STREAM, android.net.Uri::class.java)?.let(::add)
+            androidx.core.content.IntentCompat.getParcelableArrayListExtra(i, android.content.Intent.EXTRA_STREAM, android.net.Uri::class.java)?.let(::addAll)
+            i.clipData?.let { c -> for (k in 0 until c.itemCount) c.getItemAt(k).uri?.let(::add) }
+        }.distinct()
+        if (uris.isNotEmpty()) container.nearby.queueUris(uris)
+        nearbyRequests.value = true
     }
 
     private val container by lazy { (application as ScrollbackApp).container }

@@ -9,6 +9,10 @@
     <!-- v0.4: background music playback. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- v0.11 nearby sharing (LocalSend): multicast discovery + transfers in a dataSync service -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
@@ -60,6 +64,25 @@
                 <data android:mimeType="text/markdown" />
             </intent-filter>
         </activity>
+
+        <!-- "Nearby share" in the system share sheet -->
+        <activity-alias
+            android:name=".NearbyShareTarget"
+            android:exported="true"
+            android:label="Nearby share"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity-alias>
+
+        <service
+            android:name=".nearby.NearbyService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <service
             android:name=".player.MusicService"

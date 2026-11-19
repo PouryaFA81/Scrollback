@@ -104,6 +104,9 @@ private fun AppNav() {
     // "Open with Scrollback" from other apps (PDF, Office, CSV, text).
     val container = LocalContainer.current
     androidx.compose.runtime.LaunchedEffect(activity) {
+        activity?.nearbyRequests?.collect { open -> if (open) { activity.nearbyRequests.value = false; nav.navigate("nearby") { launchSingleTop = true } } }
+    }
+    androidx.compose.runtime.LaunchedEffect(activity) {
         activity?.openDocRequests?.collect { intent ->
             val uri = intent?.data ?: return@collect
             activity.openDocRequests.value = null
@@ -144,7 +147,7 @@ private fun AppNav() {
         }
         composable("browse?root={root}", arguments = listOf(navArgument("root") { type = NavType.StringType; defaultValue = "" })) { entry ->
             val root = FileRoute.decode(entry.arguments?.getString("root").orEmpty())
-            if (root != null) FileBrowserScreen(root, onBack = { nav.popBackStack() }, onOpenNote = { nav.navigate("note?file=${FileRoute.encodeFile(it)}") }, onConvert = { nav.navigate("convert?file=${FileRoute.encodeFile(it)}") }, onOpenDoc = { nav.navigate("doc?file=${FileRoute.encodeFile(it)}") }) else nav.popBackStack()
+            if (root != null) FileBrowserScreen(root, onBack = { nav.popBackStack() }, onOpenNote = { nav.navigate("note?file=${FileRoute.encodeFile(it)}") }, onConvert = { nav.navigate("convert?file=${FileRoute.encodeFile(it)}") }, onOpenDoc = { nav.navigate("doc?file=${FileRoute.encodeFile(it)}") }, onSendNearby = { container.nearby.queueNodes(it); nav.navigate("nearby") }) else nav.popBackStack()
         }
         composable("note?file={file}", arguments = listOf(navArgument("file") { type = NavType.StringType; defaultValue = "" })) { entry ->
             val file = FileRoute.decode(entry.arguments?.getString("file").orEmpty())
@@ -164,12 +167,15 @@ private fun AppNav() {
             val file = FileRoute.decode(entry.arguments?.getString("file").orEmpty())
             if (file != null) app.scrollback.feature.office.DocumentScreen(file, onBack = { nav.popBackStack() }) else nav.popBackStack()
         }
+        composable("nearby") {
+            app.scrollback.feature.nearby.NearbyScreen(onBack = { nav.popBackStack() })
+        }
         composable("archives") {
             app.scrollback.feature.files.ArchivesToolScreen(onBack = { nav.popBackStack() }, onBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") })
         }
         composable("category/{cat}") { entry ->
             val cat = runCatching { Category.valueOf(entry.arguments?.getString("cat").orEmpty()) }.getOrDefault(Category.VIDEOS)
-            CategoryScreen(cat, onBack = { nav.popBackStack() }, onOpenDoc = { nav.navigate("doc?file=${FileRoute.encodeFile(it)}") })
+            CategoryScreen(cat, onBack = { nav.popBackStack() }, onOpenDoc = { nav.navigate("doc?file=${FileRoute.encodeFile(it)}") }, onSendNearby = { container.nearby.queueNodes(it); nav.navigate("nearby") })
         }
         composable(
             "feed/{kind}?arg={arg}&start={start}",

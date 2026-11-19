@@ -46,6 +46,7 @@ import androidx.compose.material.icons.outlined.Transform
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -128,7 +129,7 @@ fun SelectionBar(actions: List<BarAction>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode) -> Unit = {}, onConvert: (FileNode) -> Unit = {}, onOpenDoc: ((FileNode) -> Unit)? = null) {
+fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode) -> Unit = {}, onConvert: (FileNode) -> Unit = {}, onOpenDoc: ((FileNode) -> Unit)? = null, onSendNearby: ((List<FileNode>) -> Unit)? = null) {
     val container = LocalContainer.current
     val files = container.files
     val ctx = LocalContext.current
@@ -257,6 +258,7 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode)
                             BarAction("Rename", Icons.Outlined.DriveFileRenameOutline, enabled = single != null && dir.canWrite) { renaming = single },
                             BarAction("Delete", Icons.Outlined.Delete, enabled = dir.canWrite) { deleting = selectedNodes },
                             BarAction("Share", Icons.Outlined.Share) { val sel = selectedNodes; withLocal(sel.filter { !it.isDir }) { shareNodes(ctx, it) } },
+                            *(if (onSendNearby != null) arrayOf(BarAction("Send nearby", Icons.Outlined.WifiTethering, enabled = selectedNodes.any { !it.isDir }) { val sel = selectedNodes.filter { !it.isDir }; selection = emptySet(); onSendNearby(sel) }) else emptyArray()),
                             BarAction("Compress", Icons.Outlined.FolderZip, enabled = dir.canWrite && busy == null) { compressing = selectedNodes },
                             BarAction("Convert", Icons.Outlined.Transform, enabled = single != null && !single.isDir) { val n = single!!; selection = emptySet(); onConvert(n) },
                             BarAction("Info", Icons.Outlined.Info, enabled = single != null) { info = single },

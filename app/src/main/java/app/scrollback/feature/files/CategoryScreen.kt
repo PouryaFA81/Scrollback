@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -64,7 +65,7 @@ import app.scrollback.ui.theme.SbSpace
 import kotlinx.coroutines.launch
 
 @Composable
-fun CategoryScreen(category: Category, onBack: () -> Unit, onOpenDoc: ((FileNode) -> Unit)? = null) {
+fun CategoryScreen(category: Category, onBack: () -> Unit, onOpenDoc: ((FileNode) -> Unit)? = null, onSendNearby: ((List<FileNode>) -> Unit)? = null) {
     val container = LocalContainer.current
     val files = container.files
     val ctx = LocalContext.current
@@ -107,6 +108,7 @@ fun CategoryScreen(category: Category, onBack: () -> Unit, onOpenDoc: ((FileNode
                             Toast.makeText(ctx, "Open a folder in Files, then Paste", Toast.LENGTH_SHORT).show()
                         },
                         BarAction("Share", Icons.Outlined.Share) { shareNodes(ctx, selected) },
+                        *(if (onSendNearby != null) arrayOf(BarAction("Send nearby", Icons.Outlined.WifiTethering) { val sel = selected; selection = emptySet(); onSendNearby(sel) }) else emptyArray()),
                         BarAction("Delete", Icons.Outlined.Delete) {
                             if (files.hasAllFilesAccess()) deleting = selected
                             else {

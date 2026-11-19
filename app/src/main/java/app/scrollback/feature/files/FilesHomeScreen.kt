@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.material.icons.outlined.FolderZip
 import androidx.compose.material.icons.outlined.Transform
 import androidx.compose.material.icons.automirrored.outlined.Notes
@@ -338,6 +339,12 @@ private fun ToolsCard(onOpenTool: (String) -> Unit) {
             subtitle = "Extract ZIP, TAR, GZ, XZ and 7z; compress files to ZIP",
             leading = { Icon(Icons.Outlined.FolderZip, null, tint = SbColors.TextPrimary) },
             onClick = { onOpenTool("archives") },
+        )
+        ListRow(
+            title = "Nearby share",
+            subtitle = "Send and receive files with LocalSend and RSend on your Wi-Fi",
+            leading = { Icon(Icons.Outlined.WifiTethering, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("nearby") },
         )
         ListRow(
             title = "Office",
