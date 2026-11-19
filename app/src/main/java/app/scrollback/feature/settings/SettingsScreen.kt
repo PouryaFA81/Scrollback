@@ -52,6 +52,7 @@ fun SettingsScreen(
     onOpenFolders: () -> Unit,
     onOpenDuplicates: () -> Unit,
     onOpenServers: () -> Unit,
+    onBack: (() -> Unit)? = null,
 ) {
     val container = LocalContainer.current
     val accounts by container.accounts.accounts.collectAsStateWithLifecycle()
@@ -84,7 +85,7 @@ fun SettingsScreen(
         ),
     )
 
-    GlassScreen(title = "Settings", collapsed = collapsed) { mod ->
+    GlassScreen(title = "Settings", collapsed = collapsed, onBack = onBack) { mod ->
         LazyColumn(
             modifier = mod,
             state = list,

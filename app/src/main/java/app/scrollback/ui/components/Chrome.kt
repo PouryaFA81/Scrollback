@@ -309,3 +309,23 @@ fun SbSwitch(checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> U
         uncheckedBorderColor = SbColors.Divider,
     ),
 )
+
+/** Compact segmented control on the fixed chrome surface (e.g. Random | Saved at the top of Feed). */
+@Composable
+fun SegmentedToggle(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier.chromeGlass(SbRadius.Pill, elevation = 0.dp).padding(3.dp), verticalAlignment = Alignment.CenterVertically) {
+        options.forEachIndexed { i, label ->
+            val on = i == selected
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (on) SbColors.OnAccent else SbColors.TextSecondary,
+                modifier = Modifier
+                    .clip(SbRadius.Pill)
+                    .background(if (on) SbColors.Accent else androidx.compose.ui.graphics.Color.Transparent)
+                    .clickable { onSelect(i) }
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+            )
+        }
+    }
+}

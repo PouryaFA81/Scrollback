@@ -7,7 +7,7 @@ indexes the folders you pick and plays them in a full-screen vertical feed — s
 order you saved them — with likes, playlists, notes, tags and search. Local folders never leave the
 device; an optional Nextcloud account can stream more media and sync your library.
 
-> Status: **v0.4 (phase 4)** — early, personal project. Android 13+ (minSdk 33).
+> Status: **v0.5** (all roadmap phases implemented) — early, personal project. Android 13+ (minSdk 33).
 
 ## Features (v1)
 
@@ -52,6 +52,21 @@ you opt in. Without it everything uses SAF folder grants.
 - **F-Droid:** allowed, but flagged as a sensitive permission in the listing.
 - **Google Play:** the permission is restricted to file-manager / backup / antivirus style apps and needs
   a declaration form; a Play build would likely ship a flavor without it (SAF only).
+
+## Navigation (v0.5)
+
+At most five bottom tabs, so nothing is crammed into the nav:
+
+| Tab | What's there |
+|---|---|
+| **Feed** | Vertical video feed with a **Random \| Saved** segmented toggle at the top (reshuffle / newest–oldest next to it) |
+| **Pictures** | Grid + full-screen viewer |
+| **Music** | Songs, artists, albums, folders, playlists (hidden when Settings → Show Music is off, leaving 4 tabs) |
+| **Files** | File manager |
+| **Library** | Liked, Playlists, History, Search, Duplicates, Hidden items |
+
+**Settings** (folders, servers/accounts, playback, privacy, music) open from the **gear** in the top bar of
+every tab. The glass mini player floats above the nav on every tab except the feed.
 
 ## Nextcloud (v0.3)
 
@@ -124,8 +139,8 @@ and haptics) and Claude / Obsidian (calm typography). Tokens live in `ui/theme/T
 | Type | system sans; 34 sp semibold large titles, 16 sp body |
 | Motion | spring(damping 0.78, stiffness 420); haptic ticks on toggles/tabs, confirm on like |
 
-Components (`ui/components`): `Modifier.glass`, `GlassIconButton`, `FloatingGlassNav` (detached pill
-bottom bar with a springy selection bubble), `GlassScreen` + `LargeTitle` + `CollapsingTopBar`
+Components (`ui/components`): `Modifier.glass`, `Modifier.chromeGlass`, `GlassIconButton`, `FloatingGlassNav` (detached pill
+bottom bar with a springy selection bubble), `SegmentedToggle`, `SettingsButton`, `GlassScreen` + `LargeTitle` + `CollapsingTopBar`
 (One UI pattern), `GlassSheet`, `GlassPill`, `SectionCard`/`SettingsRow`, `LockScreen` keypad.
 
 ## Architecture
@@ -152,6 +167,10 @@ Every feed, the player, sharing and the duplicate finder go through `MediaSource
 sources can appear in the same feeds later.
 
 ## Roadmap
+
+All four phases plus the v0.5 navigation rework are done. Next ideas: Jellyfin video in the feeds,
+Subsonic scrobbling, lyrics, a Play-compliant flavor without `MANAGE_EXTERNAL_STORAGE`, release signing.
+
 
 1. **Phase 1 — v0.1:** local offline viewer as above. ✅
 2. **Phase 2 — built-in file manager:** One UI "My Files"-style browser (copy/move/rename/delete,

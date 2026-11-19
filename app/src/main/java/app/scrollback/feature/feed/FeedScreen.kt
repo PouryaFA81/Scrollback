@@ -131,6 +131,8 @@ fun FeedScreen(
     onBack: (() -> Unit)? = null,
     onOpenFolders: () -> Unit = {},
     header: @Composable RowScope.() -> Unit = {},
+    /** Main Feed tab: the segmented Random | Saved toggle replaces the title pill. */
+    showTitle: Boolean = true,
 ) {
     val container = LocalContainer.current
     val repo = container.library
@@ -173,7 +175,7 @@ fun FeedScreen(
                 FeedPager(items, byId, startId, settings, bottomReserve)
             }
         }
-        FeedTopBar(spec.title, onBack, settings, header)
+        FeedTopBar(if (showTitle) spec.title else "", onBack, settings, header)
     }
 }
 
@@ -196,7 +198,7 @@ private fun FeedTopBar(
         horizontalArrangement = Arrangement.spacedBy(SbSpace.s),
     ) {
         if (onBack != null) GlassIconButton(Icons.AutoMirrored.Outlined.ArrowBack, "Back", onBack, size = 40.dp)
-        Text(
+        if (title.isNotEmpty()) Text(
             title,
             style = MaterialTheme.typography.titleMedium,
             color = SbColors.TextPrimary,
@@ -206,6 +208,8 @@ private fun FeedTopBar(
         )
         header()
         Spacer(Modifier.weight(1f))
+        val openSettings = app.scrollback.ui.LocalOpenSettings.current
+        if (onBack == null && openSettings != null) app.scrollback.ui.components.SettingsButton(openSettings)
         Box {
             Text(
                 "${formatSpeed(settings.defaultSpeed)}×",

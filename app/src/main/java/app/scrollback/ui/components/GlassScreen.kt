@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -36,7 +38,11 @@ fun GlassScreen(
     CompositionLocalProvider(LocalHazeState provides haze) {
         Box(Modifier.fillMaxSize().background(SbColors.Background)) {
             content(Modifier.fillMaxSize().hazeSource(haze))
-            CollapsingTopBar(title, collapsed, onBack, actions)
+            val openSettings = app.scrollback.ui.LocalOpenSettings.current
+            CollapsingTopBar(title, collapsed, onBack) {
+                actions()
+                if (onBack == null && openSettings != null) SettingsButton(openSettings)
+            }
             overlay()
         }
     }
@@ -49,3 +55,10 @@ fun LazyListState.collapsedState(): State<Boolean> =
 @Composable
 fun LazyGridState.collapsedState(): State<Boolean> =
     remember(this) { derivedStateOf { firstVisibleItemIndex > 0 || firstVisibleItemScrollOffset > 220 } }
+
+/** Gear in the top bar of every main tab: Settings, servers and accounts live behind it. */
+@Composable
+fun SettingsButton(onClick: () -> Unit) = GlassIconButton(
+    androidx.compose.material.icons.Icons.Outlined.Settings, "Settings and servers", onClick,
+    size = 40.dp, hazeState = LocalHazeState.current,
+)

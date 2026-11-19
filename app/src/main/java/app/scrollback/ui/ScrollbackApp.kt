@@ -63,6 +63,7 @@ import app.scrollback.feature.settings.SettingsScreen
 import app.scrollback.ui.components.FloatingGlassNav
 import app.scrollback.ui.components.GlassIconButton
 import app.scrollback.ui.components.GlassPill
+import app.scrollback.ui.components.SegmentedToggle
 import app.scrollback.ui.components.LocalHazeState
 import app.scrollback.ui.components.NavItem
 import app.scrollback.ui.components.rememberHaptics
@@ -70,14 +71,13 @@ import app.scrollback.ui.theme.SbColors
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
 
+/** v0.5 information architecture: at most five tabs; Settings & servers open from the top-bar gear. */
 private val TABS = listOf(
-    NavItem("random", "Random", Icons.Outlined.Shuffle),
-    NavItem("saved", "Saved", Icons.Outlined.VideoLibrary),
+    NavItem("feed", "Feed", Icons.Outlined.VideoLibrary),
     NavItem("pictures", "Pictures", Icons.Outlined.Image),
     NavItem("music", "Music", Icons.Outlined.LibraryMusic),
     NavItem("files", "Files", Icons.Outlined.Folder),
     NavItem("library", "Library", Icons.Outlined.CollectionsBookmark),
-    NavItem("settings", "Settings", Icons.Outlined.Settings),
 )
 
 @Composable
@@ -97,7 +97,7 @@ fun ScrollbackRoot() {
 private fun AppNav() {
     val nav = rememberNavController()
     val openFeed: (FeedSpec, Long) -> Unit = { spec, id -> nav.navigate(spec.toRoute(id)) }
-    val activity = androidx.compose.ui.platform.LocalContext.current as? app.scrollback.MainActivity
+    val activity = androidx.activity.compose.LocalActivity.current as? app.scrollback.MainActivity
     androidx.compose.runtime.LaunchedEffect(activity) {
         activity?.openPlayerRequests?.collect { open -> if (open) { activity.openPlayerRequests.value = false; nav.navigate("player") { launchSingleTop = true } } }
     }
@@ -117,6 +117,7 @@ private fun AppNav() {
                 openFolders = { nav.navigate("folders") },
                 openDuplicates = { nav.navigate("duplicates") },
                 openServers = { nav.navigate("servers") },
+                openSettings = { nav.navigate("settings") { launchSingleTop = true } },
                 openMusicList = { nav.navigate(it.route()) },
                 openPlayer = { nav.navigate("player") { launchSingleTop = true } },
                 openBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") },
@@ -152,6 +153,14 @@ private fun AppNav() {
         composable("playlist/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { entry ->
             PlaylistDetailScreen(entry.arguments?.getLong("id") ?: 0L, onBack = { nav.popBackStack() }, onOpen = openFeed)
         }
+        composable("settings") {
+            SettingsScreen(
+                onOpenFolders = { nav.navigate("folders") },
+                onOpenDuplicates = { nav.navigate("duplicates") },
+                onOpenServers = { nav.navigate("servers") },
+                onBack = { nav.popBackStack() },
+            )
+        }
         composable("folders") { FoldersScreen(onBack = { nav.popBackStack() }) }
         composable("servers") { ServersScreen(onBack = { nav.popBackStack() }, onBrowseNextcloud = { nav.navigate("nextcloud/$it") }) }
         composable("nextcloud/{account}") { e -> NextcloudBrowseScreen(e.arguments?.getString("account").orEmpty(), onBack = { nav.popBackStack() }) }
@@ -175,6 +184,7 @@ private fun MainTabs(
     openFolders: () -> Unit,
     openDuplicates: () -> Unit,
     openServers: () -> Unit,
+    openSettings: () -> Unit,
     openMusicList: (MusicList) -> Unit,
     openPlayer: () -> Unit,
     openBrowse: (FileNode) -> Unit,
@@ -183,11 +193,12 @@ private fun MainTabs(
     val container = LocalContainer.current
     val haptics = rememberHaptics()
     val settings by container.settings.settings.collectAsStateWithLifecycle(Settings())
-    var tab by rememberSaveable { mutableStateOf("random") }
+    var tab by rememberSaveable { mutableStateOf("feed") }
+    var feedMode by rememberSaveable { mutableStateOf(0) } // 0 = Random, 1 = Saved
     var seed by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
     val haze = rememberHazeState()
 
-    CompositionLocalProvider(LocalHazeState provides haze) {
+    CompositionLocalProvider(LocalHazeState provides haze, app.scrollback.ui.LocalOpenSettings provides openSettings) {
         Box(Modifier.fillMaxSize().background(SbColors.Background)) {
             AnimatedContent(
                 targetState = tab,
@@ -195,43 +206,44 @@ private fun MainTabs(
                 label = "tabs",
             ) { t ->
                 when (t) {
-                    "random" -> FeedScreen(
-                        spec = FeedSpec.Random(seed),
-                        startId = -1,
-                        isTab = true,
-                        onOpenFolders = openFolders,
-                        header = {
-                            GlassIconButton(Icons.Outlined.Shuffle, "Reshuffle", onClick = {
-                                haptics.confirm()
-                                seed = System.currentTimeMillis()
-                            }, size = 40.dp)
-                        },
-                    )
-                    "saved" -> FeedScreen(
-                        spec = FeedSpec.Saved(settings.savedNewestFirst),
-                        startId = -1,
-                        isTab = true,
-                        onOpenFolders = openFolders,
-                        header = {
-                            GlassPill(
-                                if (settings.savedNewestFirst) "Newest" else "Oldest",
-                                selected = false,
-                                icon = Icons.Outlined.SwapVert,
-                                onClick = {
-                                    haptics.tick()
-                                    container.appScope.launch { container.settings.setSavedNewestFirst(!settings.savedNewestFirst) }
-                                },
+                    "feed" -> {
+                        val toggle: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
+                            SegmentedToggle(listOf("Random", "Saved"), feedMode, onSelect = { haptics.tick(); feedMode = it })
+                            if (feedMode == 0) {
+                                GlassIconButton(Icons.Outlined.Shuffle, "Reshuffle", onClick = {
+                                    haptics.confirm()
+                                    seed = System.currentTimeMillis()
+                                }, size = 40.dp)
+                            } else {
+                                GlassIconButton(
+                                    Icons.Outlined.SwapVert,
+                                    if (settings.savedNewestFirst) "Newest first (tap for oldest)" else "Oldest first (tap for newest)",
+                                    onClick = {
+                                        haptics.tick()
+                                        container.appScope.launch { container.settings.setSavedNewestFirst(!settings.savedNewestFirst) }
+                                    },
+                                    size = 40.dp,
+                                )
+                            }
+                        }
+                        androidx.compose.runtime.key(feedMode) {
+                            FeedScreen(
+                                spec = if (feedMode == 0) FeedSpec.Random(seed) else FeedSpec.Saved(settings.savedNewestFirst),
+                                startId = -1,
+                                isTab = true,
+                                onOpenFolders = openFolders,
+                                header = toggle,
+                                showTitle = false,
                             )
-                        },
-                    )
+                        }
+                    }
                     "pictures" -> PicturesScreen(onOpen = openFeed)
                     "files" -> FilesHomeScreen(onBrowse = openBrowse, onCategory = openCategory)
-                    "music" -> MusicScreen(onOpenList = openMusicList, onOpenPlaylist = openPlaylist, onOpenPlayer = openPlayer, onOpenServers = openServers)
-                    "library" -> LibraryScreen(onOpen = openFeed, onOpenPlaylist = openPlaylist)
-                    else -> SettingsScreen(onOpenFolders = openFolders, onOpenDuplicates = openDuplicates, onOpenServers = openServers)
+                    "music" -> if (settings.showMusic) MusicScreen(onOpenList = openMusicList, onOpenPlaylist = openPlaylist, onOpenPlayer = openPlayer, onOpenServers = openServers) else androidx.compose.runtime.LaunchedEffect(Unit) { tab = "feed" }
+                    else -> LibraryScreen(onOpen = openFeed, onOpenPlaylist = openPlaylist, onOpenDuplicates = openDuplicates)
                 }
             }
-            if (tab != "random" && tab != "saved") {
+            if (tab != "feed") {
                 MiniPlayer(
                     onOpen = openPlayer,
                     modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 84.dp),

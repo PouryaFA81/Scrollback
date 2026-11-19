@@ -38,6 +38,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -85,6 +86,7 @@ private val SEGMENTS = listOf("Liked", "Playlists", "History", "Search")
 fun LibraryScreen(
     onOpen: (FeedSpec, Long) -> Unit,
     onOpenPlaylist: (Long) -> Unit,
+    onOpenDuplicates: () -> Unit = {},
 ) {
     val container = LocalContainer.current
     val repo = container.library
@@ -132,15 +134,23 @@ fun LibraryScreen(
                     }
                 }
             }
-            if (showHidden && settings.hasPin) {
+            if (settings.hasPin) {
                 full {
                     ListRow(
                         title = "Hidden items",
-                        subtitle = "Only visible while unlocked",
+                        subtitle = if (showHidden) "Only visible while unlocked" else "Locked — enter your PIN to view",
                         leading = { Icon(Icons.Outlined.VisibilityOff, null, tint = SbColors.TextPrimary) },
-                        onClick = { onOpen(FeedSpec.Hidden, -1) },
+                        onClick = { if (showHidden) onOpen(FeedSpec.Hidden, -1) else askPin = true },
                     )
                 }
+            }
+            full {
+                ListRow(
+                    title = "Duplicates",
+                    subtitle = "Find identical copies and free space",
+                    leading = { Icon(Icons.Outlined.ContentCopy, null, tint = SbColors.TextPrimary) },
+                    onClick = onOpenDuplicates,
+                )
             }
             when (segment) {
                 0 -> likedSection(onOpen)
