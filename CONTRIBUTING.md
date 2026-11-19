@@ -11,7 +11,7 @@ By taking part, you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
   Testing on real phones and real servers is especially valuable right now: the file manager,
   Nextcloud, Subsonic / OpenSubsonic and Jellyfin support are new and still in early testing.
 - **Suggest a feature.** Use the [feature request form](https://github.com/PouryaFA81/Scrollback/issues/new?template=feature_request.yml).
-  Please check the [roadmap](README.md#roadmap) and existing issues first.
+  Please check the [roadmap](ROADMAP.md) and existing issues first.
 - **Improve the docs.** The [user guide](docs/guide/README.md) should match what the app really does.
   If a label or a step is wrong, a fix is very welcome.
 - **Write code.** See below.
@@ -37,13 +37,14 @@ You need the JDK (the project is set up for JDK 21) and the Android SDK. The Gra
 included.
 
 ```bash
-./scripts/build-apk.sh            # debug APK at dist/scrollback-debug.apk
-./scripts/build-apk.sh --install  # same, then installs it with adb
+./scripts/build-apk.sh --no-release  # debug APK at dist/scrollback-debug.apk
+./scripts/build-apk.sh --install     # also builds signed release APKs if keystore/ exists, then installs with adb
 ./gradlew testDebugUnitTest lint  # unit tests and lint
 ```
 
 The app needs Android 13 (API 33) or newer. Debug builds use the app id `app.scrollback.debug`, so
-they can sit next to a future release build.
+they can sit next to a release build (`app.scrollback`). Release signing needs a local `keystore/`
+folder, which is never committed; contributors only need debug builds.
 
 Read [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for the architecture, how streaming and sync work,
 and the design system (colours, spacing, glass components and motion).

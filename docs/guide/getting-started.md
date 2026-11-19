@@ -10,9 +10,11 @@
 
 ## 1. Install Scrollback
 
-Signed release APKs are not available yet (**APK downloads on the Releases page: coming soon**).
-For now, install a debug build as described in the
-[README's install section](../../README.md#install).
+Download the APK for your phone from the
+[latest release](https://github.com/PouryaFA81/Scrollback/releases/latest) and open it. Most phones
+need **arm64-v8a**; pick **universal** if you're not sure. Allow **Install unknown apps** for your
+browser or file manager when Android asks. See the [README](../../README.md#download) for the other
+options, including adb.
 
 ## 2. Add your first folder
 
