@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: User guide and FAQ
+    url: https://github.com/PouryaFA81/Scrollback/blob/main/docs/guide/README.md
+    about: Step-by-step help for every feature, and answers to common questions.
+  - name: Roadmap
+    url: https://github.com/PouryaFA81/Scrollback#roadmap
+    about: See what's already planned before requesting a feature.

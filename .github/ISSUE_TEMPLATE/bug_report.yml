@@ -1,0 +1,91 @@
+name: Bug report
+description: Something in Scrollback doesn't work as expected.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please check the [FAQ](https://github.com/PouryaFA81/Scrollback/blob/main/docs/guide/faq.md) and existing issues first.
+
+        **Please don't include private details** such as server addresses, usernames, passwords, tokens or personal file names. Replace them with placeholders like `https://cloud.example.com`.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we make it happen?
+      placeholder: |
+        1. Open the Feed tab
+        2. Tap Info on a video
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of Scrollback is affected?
+      options:
+        - Feed (Random / Saved)
+        - Pictures
+        - Library (Liked, Playlists, History, Search)
+        - Notes and tags
+        - PIN lock / hidden items
+        - Duplicate finder
+        - Files (file manager)
+        - Nextcloud (browse, streaming, download, sync)
+        - Music player
+        - Subsonic / OpenSubsonic (incl. Navidrome)
+        - Jellyfin
+        - Settings
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: Scrollback version
+      description: Shown in Settings under About, for example "0.5.0-debug".
+      placeholder: 0.5.0-debug
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Phone model and Android version
+      placeholder: e.g. Pixel 8, Android 15
+    validations:
+      required: true
+  - type: input
+    id: server
+    attributes:
+      label: Server type and version (if relevant)
+      description: Only for server features. No addresses, please.
+      placeholder: e.g. Nextcloud 31, Navidrome 0.5x, Jellyfin 10.x
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots, recordings or logs
+      description: Anything else that helps. Please blur private content.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this hasn't been reported yet.
+          required: true
+        - label: I removed private details (server addresses, credentials, personal file names).
+          required: true
