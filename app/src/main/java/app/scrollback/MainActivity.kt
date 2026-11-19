@@ -45,7 +45,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        if (!isChangingConfigurations) stoppedAt = SystemClock.elapsedRealtime()
+        if (!isChangingConfigurations) {
+            stoppedAt = SystemClock.elapsedRealtime()
+            container.syncSoon(force = true)
+        }
     }
 
     override fun onStart() {
@@ -53,5 +56,6 @@ class MainActivity : ComponentActivity() {
         // Re-lock after 30 s in the background (short trips to the share sheet don't re-lock).
         if (stoppedAt > 0 && SystemClock.elapsedRealtime() - stoppedAt > 30_000) container.lockAll()
         stoppedAt = 0
+        container.syncSoon()
     }
 }

@@ -294,3 +294,18 @@ fun EmptyState(icon: ImageVector, title: String, body: String, modifier: Modifie
         }
     }
 }
+
+/** Monochrome switch used across settings screens. */
+@Composable
+fun SbSwitch(checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) = androidx.compose.material3.Switch(
+    checked = checked,
+    onCheckedChange = onChange,
+    enabled = enabled,
+    colors = androidx.compose.material3.SwitchDefaults.colors(
+        checkedThumbColor = SbColors.OnAccent,
+        checkedTrackColor = SbColors.Accent,
+        uncheckedThumbColor = SbColors.TextSecondary,
+        uncheckedTrackColor = SbColors.SurfaceHigh,
+        uncheckedBorderColor = SbColors.Divider,
+    ),
+)

@@ -34,6 +34,14 @@ data class ScannedEntry(
     val size: Long,
     val dateModified: Long,
     val kind: app.scrollback.data.db.MediaKind,
+    /** Server preview / cover art URL, if the source has one. */
+    val thumbUri: String? = null,
+    val remoteId: String? = null,
+    val artist: String? = null,
+    val album: String? = null,
+    val title: String? = null,
+    val trackNo: Int = 0,
+    val durationMs: Long = 0,
 )
 
 /**

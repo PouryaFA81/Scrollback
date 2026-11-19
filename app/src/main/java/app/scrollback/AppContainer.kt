@@ -29,8 +29,17 @@ class AppContainer(context: Context) {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val db = AppDatabase.build(context)
     val settings = SettingsStore(context)
-    val sources = MediaSourceRegistry(context)
+    val credentials = app.scrollback.accounts.CredentialStore(context)
+    val accounts = app.scrollback.accounts.AccountStore(context, credentials)
+    val auth = app.scrollback.remote.RemoteAuth()
+    val http = app.scrollback.remote.Http.client(context, auth)
+    val dav = app.scrollback.remote.webdav.WebDavClient(http)
+    val servers = app.scrollback.accounts.ServerManager(accounts, auth, http, appScope)
+    val sources = MediaSourceRegistry(context, accounts, dav)
     val library = LibraryRepository(context, db, sources)
+    val playback = app.scrollback.player.Playback(context, http, auth)
+    val downloader = app.scrollback.remote.Downloader(context, http, auth)
+    val sync = app.scrollback.sync.SyncEngine(db, accounts, dav)
     val duplicates = DuplicateRepository(db, library)
     val files = app.scrollback.files.FileRepository(context)
 
@@ -44,6 +53,25 @@ class AppContainer(context: Context) {
         appScope.launch {
             hasPin.collect { has -> if (!has) _session.update { it.copy(hiddenRevealed = true) } }
         }
+        appScope.launch { library.ensurePlaylistUuids() }
+    }
+
+    /** Subsonic/Jellyfin clients (phase 4). */
+    val musicServersReady = false
+
+    suspend fun signInMusicServer(type: app.scrollback.accounts.AccountType, url: String, user: String, password: String): Unit =
+        throw UnsupportedOperationException("Music servers arrive in v0.4")
+
+    suspend fun addMusicServerSource(accountId: String): Unit = Unit
+
+    private var lastSync = 0L
+
+    /** Background library sync with Nextcloud (on app start/stop and "Sync now"); never blocks the UI. */
+    fun syncSoon(force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!force && now - lastSync < 60_000) return
+        lastSync = now
+        appScope.launch { sync.syncAll() }
     }
 
     fun unlockApp() = _session.update { it.copy(appUnlocked = true) }

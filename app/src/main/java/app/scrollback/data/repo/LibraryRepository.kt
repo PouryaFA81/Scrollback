@@ -80,6 +80,25 @@ class LibraryRepository(
         id
     }
 
+    /** Adds a folder/library on a server account (Nextcloud folder, Subsonic/Jellyfin library) and indexes it. */
+    suspend fun addRemoteSource(type: SourceType, uri: String, displayName: String, accountId: String): Long = withContext(Dispatchers.IO) {
+        val id = sourceDao.byUri(uri)?.id ?: sourceDao.insert(
+            SourceEntity(type = type.id, uri = uri, displayName = displayName, addedAt = System.currentTimeMillis(), accountId = accountId)
+        )
+        scan(listOf(id))
+        id
+    }
+
+    /** Removes every source that belongs to a server account (when the account is signed out). */
+    suspend fun removeAccountSources(accountId: String) = withContext(Dispatchers.IO) {
+        sourceDao.all().filter { it.accountId == accountId }.forEach { removeSource(it.id) }
+    }
+
+    /** Drops cached [MediaSource]s, e.g. after account credentials changed. */
+    fun invalidateSources() = sourceCache.clear()
+
+    suspend fun rescan(sourceId: Long) = scan(listOf(sourceId))
+
     suspend fun removeSource(sourceId: Long) = withContext(Dispatchers.IO) {
         val s = sourceDao.byId(sourceId) ?: return@withContext
         val othersShareTree = sourceDao.all().any { it.id != s.id && it.uri.startsWith(s.uri.substringBefore("/document/")) }
@@ -101,7 +120,7 @@ class LibraryRepository(
     private suspend fun sourceFor(sourceId: Long): MediaSource? {
         sourceCache[sourceId]?.let { return it }
         val entity = sourceDao.byId(sourceId) ?: return null
-        return sources.forSource(entity).also { sourceCache[sourceId] = it }
+        return sources.forSource(entity)?.also { sourceCache[sourceId] = it }
     }
 
     // ---- Scanning ------------------------------------------------------------------------
@@ -117,38 +136,55 @@ class LibraryRepository(
                 val entity = sourceDao.byId(id) ?: continue
                 _scanState.value = ScanState(true, entity.displayName, found)
                 val source = sourceFor(id) ?: continue
-                val existing = mediaDao.indexRows(id).associateBy { it.uri }
-                val seen = HashSet<Long>()
-                val batch = ArrayList<MediaEntity>()
-                val now = System.currentTimeMillis()
-                for (e in source.scan()) {
-                    found++
-                    if (found % 50 == 0) _scanState.value = ScanState(true, entity.displayName, found)
-                    val row = existing[e.uri]
-                    if (row == null) {
-                        batch += MediaEntity(
-                            sourceId = id, uri = e.uri, name = e.name, relativePath = e.relativePath,
-                            mime = e.mime, kind = e.kind.id, size = e.size,
-                            dateModified = e.dateModified.takeIf { it > 0 } ?: now, dateAdded = now,
-                        )
-                        if (batch.size >= 200) { mediaDao.insertAll(batch); batch.clear() }
-                    } else {
-                        seen += row.id
-                        if (row.size != e.size || row.dateModified != e.dateModified) {
-                            mediaDao.updateChanged(row.id, e.name, e.relativePath, e.mime, e.size, e.dateModified)
-                        }
-                    }
+                try {
+                    found = scanOne(id, entity.displayName, source, found)
+                    sourceDao.setScanned(id, System.currentTimeMillis())
+                } catch (e: Exception) {
+                    // Offline or server error: keep the existing index untouched (nothing is marked missing).
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    android.util.Log.w("Scrollback", "scan of source $id failed: ${e.javaClass.simpleName}")
                 }
-                if (batch.isNotEmpty()) mediaDao.insertAll(batch)
-                val gone = existing.values.filter { it.id !in seen && !it.missing }.map { it.id }
-                val back = existing.values.filter { it.id in seen && it.missing }.map { it.id }
-                gone.chunked(500).forEach { mediaDao.setMissing(it, true) }
-                back.chunked(500).forEach { mediaDao.setMissing(it, false) }
-                sourceDao.setScanned(id, System.currentTimeMillis())
             }
             _scanState.value = ScanState(false, null, found)
         }
         enrichMetadata()
+    }
+
+    private suspend fun scanOne(id: Long, displayName: String, source: MediaSource, foundSoFar: Int): Int {
+        var found = foundSoFar
+        val existing = mediaDao.indexRows(id).associateBy { it.uri }
+        val seen = HashSet<Long>()
+        val batch = ArrayList<MediaEntity>()
+        val now = System.currentTimeMillis()
+        for (e in source.scan()) {
+            found++
+            if (found % 50 == 0) _scanState.value = ScanState(true, displayName, found)
+            val row = existing[e.uri]
+            if (row == null) {
+                batch += MediaEntity(
+                    sourceId = id, uri = e.uri, name = e.name, relativePath = e.relativePath,
+                    mime = e.mime, kind = e.kind.id, size = e.size,
+                    dateModified = e.dateModified.takeIf { it > 0 } ?: now, dateAdded = now,
+                    thumbUri = e.thumbUri, remoteId = e.remoteId, artist = e.artist, album = e.album,
+                    title = e.title, trackNo = e.trackNo, durationMs = e.durationMs,
+                )
+                if (batch.size >= 200) { mediaDao.insertAll(batch); batch.clear() }
+            } else {
+                seen += row.id
+                if (row.size != e.size || row.dateModified != e.dateModified) {
+                    mediaDao.updateChanged(row.id, e.name, e.relativePath, e.mime, e.size, e.dateModified)
+                }
+                if (e.thumbUri != null || e.remoteId != null || e.artist != null || e.title != null) {
+                    mediaDao.setExtras(row.id, e.thumbUri, e.artist, e.album, e.title, e.trackNo, e.remoteId, e.durationMs)
+                }
+            }
+        }
+        if (batch.isNotEmpty()) mediaDao.insertAll(batch)
+        val gone = existing.values.filter { it.id !in seen && !it.missing }.map { it.id }
+        val back = existing.values.filter { it.id in seen && it.missing }.map { it.id }
+        gone.chunked(500).forEach { mediaDao.setMissing(it, true) }
+        back.chunked(500).forEach { mediaDao.setMissing(it, false) }
+        return found
     }
 
     /** Fills in duration and resolution for videos, in small batches, after a scan. */
@@ -227,10 +263,22 @@ class LibraryRepository(
         }
     }
 
-    suspend fun playback(item: MediaEntity): PlaybackRequest =
-        sourceFor(item.sourceId)?.playback(item.uri) ?: PlaybackRequest(Uri.parse(item.uri))
+    /** Offline copies win over streaming. */
+    suspend fun playback(item: MediaEntity): PlaybackRequest {
+        item.localUri?.let { local -> if (exists(local)) return PlaybackRequest(Uri.parse(local)) }
+        return sourceFor(item.sourceId)?.playback(item.uri) ?: PlaybackRequest(Uri.parse(item.uri))
+    }
 
-    suspend fun shareUri(item: MediaEntity): Uri? = sourceFor(item.sourceId)?.shareUri(item.uri)
+    suspend fun shareUri(item: MediaEntity): Uri? {
+        item.localUri?.let { local -> if (exists(local)) return Uri.parse(local) }
+        return sourceFor(item.sourceId)?.shareUri(item.uri)
+    }
+
+    private fun exists(uri: String): Boolean = runCatching {
+        context.contentResolver.openAssetFileDescriptor(Uri.parse(uri), "r")?.use { true } ?: false
+    }.getOrDefault(false)
+
+    suspend fun setLocalCopy(mediaId: Long, localUri: String?) = mediaDao.setLocalUri(mediaId, localUri)
 
     suspend fun mediaSourceFor(item: MediaEntity): MediaSource? = sourceFor(item.sourceId)
 
@@ -249,18 +297,36 @@ class LibraryRepository(
     fun membership(mediaId: Long) = playlistDao.observeMembership(mediaId)
 
     suspend fun createPlaylist(name: String): Long =
-        playlistDao.insert(PlaylistEntity(name = name.trim().ifEmpty { "Playlist" }, createdAt = System.currentTimeMillis()))
+        System.currentTimeMillis().let { now ->
+            playlistDao.insert(
+                PlaylistEntity(name = name.trim().ifEmpty { "Playlist" }, createdAt = now, uuid = java.util.UUID.randomUUID().toString(), updatedAt = now)
+            )
+        }
 
     suspend fun renamePlaylist(id: Long, name: String) = playlistDao.rename(id, name.trim())
-    suspend fun deletePlaylist(id: Long) = playlistDao.delete(id)
+    suspend fun deletePlaylist(id: Long) = db.withTransaction {
+        playlistDao.byId(id)?.uuid?.takeIf { it.isNotEmpty() }?.let {
+            playlistDao.insertTombstone(app.scrollback.data.db.SyncTombstone("playlist:$it", System.currentTimeMillis()))
+        }
+        playlistDao.delete(id)
+    }
+
+    /** Gives playlists created before v0.3 a stable sync id. */
+    suspend fun ensurePlaylistUuids() = playlistDao.all().filter { it.uuid.isEmpty() }.forEach {
+        playlistDao.setUuid(it.id, java.util.UUID.randomUUID().toString())
+    }
 
     suspend fun addToPlaylist(playlistId: Long, mediaId: Long) = db.withTransaction {
         playlistDao.insertEntry(
             PlaylistEntry(playlistId, mediaId, playlistDao.nextPosition(playlistId), System.currentTimeMillis())
         )
+        playlistDao.touch(playlistId)
     }
 
-    suspend fun removeFromPlaylist(playlistId: Long, mediaId: Long) = playlistDao.removeEntry(playlistId, mediaId)
+    suspend fun removeFromPlaylist(playlistId: Long, mediaId: Long) = db.withTransaction {
+        playlistDao.removeEntry(playlistId, mediaId)
+        playlistDao.touch(playlistId)
+    }
 
     /** Moves an entry one step up (-1) or down (+1) and renumbers positions densely. */
     suspend fun moveInPlaylist(playlistId: Long, mediaId: Long, delta: Int) = db.withTransaction {
@@ -270,5 +336,6 @@ class LibraryRepository(
         if (from < 0 || from == to) return@withTransaction
         ids.add(to, ids.removeAt(from))
         ids.forEachIndexed { i, id -> playlistDao.setPosition(playlistId, id, i) }
+        playlistDao.touch(playlistId)
     }
 }

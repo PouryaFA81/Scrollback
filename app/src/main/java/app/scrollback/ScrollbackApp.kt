@@ -15,12 +15,15 @@ class ScrollbackApp : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
-        container.appScope.launch { container.library.rescanAll() }
+        container.appScope.launch { container.library.rescanAll(); container.syncSoon(force = true) }
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader.Builder(context)
-            .components { add(VideoFrameDecoder.Factory()) }
+            .components {
+                add(VideoFrameDecoder.Factory())
+                add(coil3.network.okhttp.OkHttpNetworkFetcherFactory(callFactory = { container.http }))
+            }
             .crossfade(true)
             .build()
 }

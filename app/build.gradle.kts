@@ -14,8 +14,8 @@ android {
         applicationId = "app.scrollback"
         minSdk = 33
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
     }
 
     buildTypes {
@@ -63,6 +63,11 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    implementation(libs.media3.datasource.okhttp)
+    implementation(libs.media3.session)
+    implementation(libs.coroutines.guava)
+    implementation(libs.okhttp)
+    implementation(libs.coil.network.okhttp)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
@@ -76,4 +81,6 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+    testImplementation(libs.org.json)
+    testImplementation(libs.okhttp.mockwebserver)
 }

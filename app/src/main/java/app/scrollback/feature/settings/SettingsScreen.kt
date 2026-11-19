@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardDoubleArrowDown
@@ -49,8 +50,10 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     onOpenFolders: () -> Unit,
     onOpenDuplicates: () -> Unit,
+    onOpenServers: () -> Unit,
 ) {
     val container = LocalContainer.current
+    val accounts by container.accounts.accounts.collectAsStateWithLifecycle()
     val settingsStore = container.settings
     val haptics = rememberHaptics()
     val settings by settingsStore.settings.collectAsStateWithLifecycle(Settings())
@@ -105,6 +108,13 @@ fun SettingsScreen(
                     )
                     RowDivider()
                     SettingsRow("Duplicate finder", subtitle = "Find identical copies and free space", icon = Icons.Outlined.ContentCopy, onClick = onOpenDuplicates)
+                    RowDivider()
+                    SettingsRow(
+                        "Servers",
+                        subtitle = if (accounts.isEmpty()) "Nextcloud streaming & sync — optional" else accounts.joinToString { it.displayName },
+                        icon = Icons.Outlined.Cloud,
+                        onClick = onOpenServers,
+                    )
                 }
             }
             item {

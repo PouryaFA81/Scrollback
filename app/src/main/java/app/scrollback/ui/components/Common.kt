@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import app.scrollback.data.db.MediaEntity
 import app.scrollback.data.db.isVideo
+import app.scrollback.data.db.thumbModel
 import app.scrollback.ui.theme.SbColors
 import app.scrollback.ui.theme.SbSpace
 import coil3.compose.AsyncImage
@@ -45,18 +46,29 @@ import coil3.request.ImageRequest
 import coil3.video.videoFrameMillis
 import kotlinx.coroutines.launch
 
-/** Thumbnail for a video (frame at 1s) or picture. */
+/**
+ * Thumbnail for a video (frame at 1s), picture or song. Remote items use the server preview;
+ * [full] loads the original (full-screen viewer). Remote URLs are resolved at load time and cached
+ * under their stable DB URI, so credentials never become cache keys.
+ */
 @Composable
-fun MediaThumb(item: MediaEntity, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Crop) {
+fun MediaThumb(item: MediaEntity, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Crop, full: Boolean = false) {
     val ctx = LocalContext.current
-    val request = remember(item.uri) {
+    val auth = app.scrollback.ui.LocalContainer.current.auth
+    val model = if (full && !item.isVideo) (item.localUri ?: item.uri) else item.thumbModel
+    val remoteVideoWithoutPreview = item.isVideo && item.thumbUri == null && item.localUri == null && auth.isRemote(item.uri)
+    val request = remember(model, full) {
         ImageRequest.Builder(ctx)
-            .data(Uri.parse(item.uri))
-            .apply { if (item.isVideo) videoFrameMillis(1000) }
+            .data(auth.resolve(model))
+            .memoryCacheKey(model + if (full) "#full" else "")
+            .diskCacheKey(model)
+            .apply { if (item.isVideo && model == item.uri) videoFrameMillis(1000) }
             .build()
     }
     Box(modifier.background(SbColors.Surface)) {
-        AsyncImage(model = request, contentDescription = item.name, contentScale = contentScale, modifier = Modifier.matchParentSize())
+        if (!remoteVideoWithoutPreview) {
+            AsyncImage(model = request, contentDescription = item.name, contentScale = contentScale, modifier = Modifier.matchParentSize())
+        }
     }
 }
 

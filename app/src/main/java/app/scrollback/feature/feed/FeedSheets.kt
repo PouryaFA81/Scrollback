@@ -17,6 +17,8 @@ import androidx.compose.material.icons.automirrored.outlined.PlaylistPlay
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.DownloadDone
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -201,9 +203,26 @@ fun InfoSheet(item: MediaEntity, onDismiss: () -> Unit) {
                 close()
             },
         )
+        if (container.auth.isRemote(item.uri)) {
+            SettingsRow(
+                title = if (item.localUri != null) "Downloaded" else "Download",
+                subtitle = if (item.localUri != null) "Plays offline from Download/Scrollback" else "Save an offline copy to Download/Scrollback",
+                icon = if (item.localUri != null) Icons.Outlined.DownloadDone else Icons.Outlined.Download,
+                enabled = item.localUri == null,
+                onClick = {
+                    Toast.makeText(ctx, "Downloading…", Toast.LENGTH_SHORT).show()
+                    container.appScope.launch(Dispatchers.Main) {
+                        val r = runCatching { container.downloader.download(item) }
+                        r.getOrNull()?.let { repo.setLocalCopy(item.id, it) }
+                        Toast.makeText(ctx, if (r.isSuccess) "Saved to Download/Scrollback" else "Download failed", Toast.LENGTH_SHORT).show()
+                    }
+                    close()
+                },
+            )
+        }
         SettingsRow(
             title = "Delete file",
-            subtitle = "Removes it from the device folder",
+            subtitle = if (container.auth.isRemote(item.uri)) "Deletes it on the server" else "Removes it from the device folder",
             icon = Icons.Outlined.Delete,
             onClick = { confirmDelete = true },
         )

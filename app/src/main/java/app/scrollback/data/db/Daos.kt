@@ -102,23 +102,23 @@ interface MediaDao {
     @Query("UPDATE media SET missing = :missing WHERE id IN (:ids)")
     suspend fun setMissing(ids: List<Long>, missing: Boolean)
 
-    @Query("UPDATE media SET liked = :liked, likedAt = :at WHERE id = :id")
+    @Query("UPDATE media SET liked = :liked, likedAt = :at, metaUpdatedAt = :at WHERE id = :id")
     suspend fun setLiked(id: Long, liked: Boolean, at: Long)
 
-    @Query("UPDATE media SET hidden = :hidden WHERE id = :id")
-    suspend fun setHidden(id: Long, hidden: Boolean)
+    @Query("UPDATE media SET hidden = :hidden, metaUpdatedAt = :now WHERE id = :id")
+    suspend fun setHidden(id: Long, hidden: Boolean, now: Long = System.currentTimeMillis())
 
-    @Query("UPDATE media SET note = :note WHERE id = :id")
-    suspend fun setNote(id: Long, note: String)
+    @Query("UPDATE media SET note = :note, metaUpdatedAt = :now WHERE id = :id")
+    suspend fun setNote(id: Long, note: String, now: Long = System.currentTimeMillis())
 
-    @Query("UPDATE media SET lastPositionMs = :positionMs WHERE id = :id")
-    suspend fun savePosition(id: Long, positionMs: Long)
+    @Query("UPDATE media SET lastPositionMs = :positionMs, metaUpdatedAt = :now WHERE id = :id")
+    suspend fun savePosition(id: Long, positionMs: Long, now: Long = System.currentTimeMillis())
 
-    @Query("UPDATE media SET lastWatchedAt = :at, watchCount = watchCount + 1 WHERE id = :id")
+    @Query("UPDATE media SET lastWatchedAt = :at, watchCount = watchCount + 1, metaUpdatedAt = :at WHERE id = :id")
     suspend fun markWatched(id: Long, at: Long)
 
-    @Query("UPDATE media SET lastWatchedAt = 0, lastPositionMs = 0")
-    suspend fun clearHistory()
+    @Query("UPDATE media SET lastWatchedAt = 0, lastPositionMs = 0, metaUpdatedAt = :now WHERE lastWatchedAt > 0 OR lastPositionMs > 0")
+    suspend fun clearHistory(now: Long = System.currentTimeMillis())
 
     @Query("UPDATE media SET durationMs = :durationMs, width = :width, height = :height WHERE id = :id")
     suspend fun setMetadata(id: Long, durationMs: Long, width: Int, height: Int)
@@ -126,7 +126,7 @@ interface MediaDao {
     @Query("UPDATE media SET partialHash = COALESCE(:partial, partialHash), fullHash = COALESCE(:full, fullHash) WHERE id = :id")
     suspend fun setHashes(id: Long, partial: String?, full: String?)
 
-    @Query("SELECT * FROM media WHERE kind = 'video' AND missing = 0 AND durationMs = 0 LIMIT :limit")
+    @Query("SELECT * FROM media WHERE kind = 'video' AND missing = 0 AND durationMs = 0 AND uri NOT LIKE 'http%' AND uri NOT LIKE 'subsonic:%' AND uri NOT LIKE 'jellyfin:%' LIMIT :limit")
     suspend fun missingMetadata(limit: Int): List<MediaEntity>
 
     @Query(
@@ -140,10 +140,35 @@ interface MediaDao {
 
     @Query("DELETE FROM media WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Query("SELECT * FROM media WHERE missing = 0")
+    suspend fun allPresent(): List<MediaEntity>
+
+    @Query("SELECT * FROM media WHERE sourceId = :sourceId AND remoteId = :remoteId LIMIT 1")
+    suspend fun byRemoteId(sourceId: Long, remoteId: String): MediaEntity?
+
+    @Query("UPDATE media SET thumbUri = :thumbUri, artist = :artist, album = :album, title = :title, trackNo = :trackNo, remoteId = :remoteId, durationMs = CASE WHEN :durationMs > 0 THEN :durationMs ELSE durationMs END WHERE id = :id")
+    suspend fun setExtras(id: Long, thumbUri: String?, artist: String?, album: String?, title: String?, trackNo: Int, remoteId: String?, durationMs: Long)
+
+    @Query("UPDATE media SET localUri = :localUri WHERE id = :id")
+    suspend fun setLocalUri(id: Long, localUri: String?)
+
+    @Query(
+        """UPDATE media SET liked = :liked, likedAt = :likedAt, hidden = :hidden, note = :note,
+           lastPositionMs = :lastPositionMs, lastWatchedAt = :lastWatchedAt, watchCount = :watchCount,
+           metaUpdatedAt = :updatedAt WHERE id = :id"""
+    )
+    suspend fun applyRemote(
+        id: Long, liked: Boolean, likedAt: Long, hidden: Boolean, note: String,
+        lastPositionMs: Long, lastWatchedAt: Long, watchCount: Int, updatedAt: Long,
+    )
 }
 
 @Dao
 interface TagDao {
+    @Query("SELECT mt.mediaId AS mediaId, t.name AS name FROM media_tags mt JOIN tags t ON t.id = mt.tagId")
+    suspend fun allNames(): List<MediaTagName>
+
     @Query(
         """SELECT t.id, t.name, COUNT(m.id) AS count FROM tags t
            JOIN media_tags mt ON mt.tagId = t.id
@@ -200,8 +225,8 @@ interface PlaylistDao {
     @Insert
     suspend fun insert(playlist: PlaylistEntity): Long
 
-    @Query("UPDATE playlists SET name = :name WHERE id = :id")
-    suspend fun rename(id: Long, name: String)
+    @Query("UPDATE playlists SET name = :name, updatedAt = :now WHERE id = :id")
+    suspend fun rename(id: Long, name: String, now: Long = System.currentTimeMillis())
 
     @Query("DELETE FROM playlists WHERE id = :id")
     suspend fun delete(id: Long)
@@ -220,4 +245,31 @@ interface PlaylistDao {
 
     @Query("SELECT mediaId FROM playlist_entries WHERE playlistId = :playlistId ORDER BY position")
     suspend fun orderedMediaIds(playlistId: Long): List<Long>
+
+    @Query("UPDATE playlists SET updatedAt = :now WHERE id = :id")
+    suspend fun touch(id: Long, now: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM playlists")
+    suspend fun all(): List<PlaylistEntity>
+
+    @Query("SELECT * FROM playlists WHERE id = :id")
+    suspend fun byId(id: Long): PlaylistEntity?
+
+    @Query("SELECT * FROM playlists WHERE uuid = :uuid")
+    suspend fun byUuid(uuid: String): PlaylistEntity?
+
+    @Query("UPDATE playlists SET uuid = :uuid WHERE id = :id")
+    suspend fun setUuid(id: Long, uuid: String)
+
+    @Query("UPDATE playlists SET name = :name, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun applyRemote(id: Long, name: String, updatedAt: Long)
+
+    @Query("DELETE FROM playlist_entries WHERE playlistId = :playlistId")
+    suspend fun clearEntries(playlistId: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTombstone(t: SyncTombstone)
+
+    @Query("SELECT * FROM sync_tombstones")
+    suspend fun tombstones(): List<SyncTombstone>
 }

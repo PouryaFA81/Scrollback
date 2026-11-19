@@ -255,7 +255,7 @@ private fun FeedPager(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(initialPage = items.indexOfFirst { it.id == startId }.coerceAtLeast(0)) { items.size }
-    val player = remember { ExoPlayer.Builder(context).build() }
+    val player = remember { container.playback.newPlayer() }
     var currentId by remember { mutableStateOf<Long?>(null) }
     var progress by remember { mutableFloatStateOf(0f) }
     var sheet by remember { mutableStateOf<FeedSheet?>(null) }
@@ -421,7 +421,7 @@ private fun FeedPage(
                 )
             },
     ) {
-        MediaThumb(item, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+        MediaThumb(item, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, full = true)
         if (item.isVideo && isCurrent) {
             AndroidView(
                 factory = { ctx ->
@@ -487,7 +487,9 @@ private fun FeedPage(
             GlassIconButton(Icons.Outlined.Share, "Share", {
                 haptics.tick()
                 scope.launch {
-                    repo.shareUri(item)?.let { shareMedia(context, it, item.mime, item.name) }
+                    val uri = repo.shareUri(item)
+                    if (uri != null) shareMedia(context, uri, item.mime, item.name)
+                    else android.widget.Toast.makeText(context, "Download it first (Info → Download) to share the file", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }, label = "Share")
             GlassIconButton(Icons.Outlined.Info, "Info", { haptics.tick(); onSheet(FeedSheet.Info(item.id)) }, label = "Info")

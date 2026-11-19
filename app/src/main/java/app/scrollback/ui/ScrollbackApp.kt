@@ -37,6 +37,8 @@ import androidx.navigation.navArgument
 import app.scrollback.data.prefs.Settings
 import app.scrollback.feature.feed.FeedScreen
 import app.scrollback.feature.files.CategoryScreen
+import app.scrollback.feature.servers.NextcloudBrowseScreen
+import app.scrollback.feature.servers.ServersScreen
 import app.scrollback.feature.files.FileBrowserScreen
 import app.scrollback.feature.files.FileRoute
 import app.scrollback.feature.files.FilesHomeScreen
@@ -101,6 +103,7 @@ private fun AppNav() {
                 openPlaylist = { nav.navigate("playlist/$it") },
                 openFolders = { nav.navigate("folders") },
                 openDuplicates = { nav.navigate("duplicates") },
+                openServers = { nav.navigate("servers") },
                 openBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") },
                 openCategory = { nav.navigate("category/${it.name}") },
             )
@@ -135,6 +138,8 @@ private fun AppNav() {
             PlaylistDetailScreen(entry.arguments?.getLong("id") ?: 0L, onBack = { nav.popBackStack() }, onOpen = openFeed)
         }
         composable("folders") { FoldersScreen(onBack = { nav.popBackStack() }) }
+        composable("servers") { ServersScreen(onBack = { nav.popBackStack() }, onBrowseNextcloud = { nav.navigate("nextcloud/$it") }) }
+        composable("nextcloud/{account}") { e -> NextcloudBrowseScreen(e.arguments?.getString("account").orEmpty(), onBack = { nav.popBackStack() }) }
         composable("duplicates") { DuplicatesScreen(onBack = { nav.popBackStack() }) }
     }
 }
@@ -145,6 +150,7 @@ private fun MainTabs(
     openPlaylist: (Long) -> Unit,
     openFolders: () -> Unit,
     openDuplicates: () -> Unit,
+    openServers: () -> Unit,
     openBrowse: (FileNode) -> Unit,
     openCategory: (Category) -> Unit,
 ) {
@@ -195,7 +201,7 @@ private fun MainTabs(
                     "pictures" -> PicturesScreen(onOpen = openFeed)
                     "files" -> FilesHomeScreen(onBrowse = openBrowse, onCategory = openCategory)
                     "library" -> LibraryScreen(onOpen = openFeed, onOpenPlaylist = openPlaylist)
-                    else -> SettingsScreen(onOpenFolders = openFolders, onOpenDuplicates = openDuplicates)
+                    else -> SettingsScreen(onOpenFolders = openFolders, onOpenDuplicates = openDuplicates, onOpenServers = openServers)
                 }
             }
             FloatingGlassNav(

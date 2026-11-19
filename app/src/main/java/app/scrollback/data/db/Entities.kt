@@ -18,6 +18,8 @@ data class SourceEntity(
     val displayName: String,
     val addedAt: Long,
     val lastScanAt: Long = 0,
+    /** Server account (see `accounts/`) for remote sources; null for local folders. */
+    val accountId: String? = null,
 )
 
 @Entity(
@@ -34,6 +36,8 @@ data class SourceEntity(
         Index("dateModified"),
         Index("size"),
         Index("kind"),
+        Index("artist"),
+        Index("album"),
     ],
 )
 data class MediaEntity(
@@ -62,6 +66,18 @@ data class MediaEntity(
     val lastWatchedAt: Long = 0,
     val watchCount: Int = 0,
     val missing: Boolean = false,
+    /** Remote preview/cover URL (Nextcloud preview, Subsonic/Jellyfin cover art); null = decode locally. */
+    val thumbUri: String? = null,
+    /** content:// URI of an offline copy downloaded from a remote source. */
+    val localUri: String? = null,
+    /** Last change to user metadata (like, note, tags, hidden, history): last-write-wins sync clock. */
+    @ColumnInfo(defaultValue = "0") val metaUpdatedAt: Long = 0,
+    val artist: String? = null,
+    val album: String? = null,
+    val title: String? = null,
+    @ColumnInfo(defaultValue = "0") val trackNo: Int = 0,
+    /** Server-side id (Nextcloud fileid, Subsonic/Jellyfin item id). */
+    val remoteId: String? = null,
 )
 
 @Entity(tableName = "tags", indices = [Index(value = ["name"], unique = true)])
@@ -86,6 +102,16 @@ data class PlaylistEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val createdAt: Long,
+    /** Stable id used by Nextcloud sync. */
+    @ColumnInfo(defaultValue = "''") val uuid: String = "",
+    @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0,
+)
+
+/** Remembers deleted playlists so sync does not resurrect them. */
+@Entity(tableName = "sync_tombstones")
+data class SyncTombstone(
+    @PrimaryKey val key: String,
+    val deletedAt: Long,
 )
 
 @Entity(
@@ -110,6 +136,8 @@ data class PlaylistSummary(
     val count: Int,
     val coverUri: String?,
 )
+
+data class MediaTagName(val mediaId: Long, val name: String)
 
 data class TagCount(val id: Long, val name: String, val count: Int)
 
@@ -141,3 +169,7 @@ enum class MediaKind(val id: String) {
 
 val MediaEntity.isVideo: Boolean get() = kind == MediaKind.VIDEO.id
 val MediaEntity.isImage: Boolean get() = kind == MediaKind.IMAGE.id
+val MediaEntity.isAudio: Boolean get() = kind == MediaKind.AUDIO.id
+val MediaEntity.isRemote: Boolean get() = uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("subsonic:") || uri.startsWith("jellyfin:")
+/** What thumbnails should load: a server preview when there is one, else the item itself. */
+val MediaEntity.thumbModel: String get() = thumbUri ?: localUri ?: uri

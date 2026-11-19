@@ -4,9 +4,10 @@ A private, offline, TikTok-style viewer for the videos and pictures you've saved
 
 Saved TikToks pile up in a folder and gallery apps make them hard to find or re-watch. Scrollback
 indexes the folders you pick and plays them in a full-screen vertical feed — shuffled or in the
-order you saved them — with likes, playlists, notes, tags and search. Nothing leaves the device.
+order you saved them — with likes, playlists, notes, tags and search. Local folders never leave the
+device; an optional Nextcloud account can stream more media and sync your library.
 
-> Status: **v0.2 (phase 2)** — early, personal project. Android 13+ (minSdk 33).
+> Status: **v0.3 (phase 3)** — early, personal project. Android 13+ (minSdk 33).
 
 ## Features (v1)
 
@@ -26,7 +27,7 @@ order you saved them — with likes, playlists, notes, tags and search. Nothing 
   background) and per-item **hidden** flag that only shows after unlocking; optional FLAG_SECURE.
 - **Duplicate finder** — groups by size → partial hash (first + last 64 KiB) → full SHA-256 on
   ties; review screen keeps the oldest copy by default and deletes via SAF after confirmation.
-- No `INTERNET` permission in v1.
+- v0.1–0.2 had no `INTERNET` permission; v0.3 adds it for optional servers (see below).
 
 ## File manager (v0.2)
 
@@ -52,10 +53,34 @@ you opt in. Without it everything uses SAF folder grants.
 - **Google Play:** the permission is restricted to file-manager / backup / antivirus style apps and needs
   a declaration form; a Play build would likely ship a flavor without it (SAF only).
 
+## Nextcloud (v0.3)
+
+Optional — Scrollback is fully usable offline and without any account. Settings → **Servers**:
+
+- **Sign in with Login Flow v2:** you approve access on your Nextcloud's own page (2FA/SSO work) and
+  Scrollback receives an **app password**, encrypted with an Android Keystore AES-GCM key
+  (`accounts/CredentialStore`). It is never logged, never stored in the database and is added to
+  requests on the wire by one OkHttp interceptor (`remote/RemoteAuth`). Revoke it any time in
+  Nextcloud → Settings → Security.
+- **Browse** your files over WebDAV (PROPFIND) and **add any folder as a Scrollback source**. Its videos
+  and pictures appear in the same Random / Saved / Pictures feeds and are **streamed** — Media3 via
+  `media3-datasource-okhttp` with a 512 MB LRU `SimpleCache`, thumbnails from Nextcloud's preview
+  endpoint through Coil's OkHttp fetcher. No download needed.
+- **Download** (feed → Info → Download, or from the browser) saves a copy to `Download/Scrollback`;
+  downloaded items then play and share offline.
+- **Library sync:** likes, hidden flags, notes, tags, watch history/resume and playlists are kept in
+  `/Scrollback/scrollback-sync.json` in your Nextcloud, merged **last-write-wins per record** by
+  timestamp (`sync/SyncMerge`, unit-tested). Items are matched across devices by Nextcloud path, or
+  by file name + size for local files. Sync runs at app start, when the app goes to the background,
+  and from "Sync now"; uploads use `If-Match` so concurrent writers retry instead of clobbering.
+- **Offline:** scans of unreachable servers are skipped without marking anything missing; sync errors
+  are shown on the account and never block the app. Plain `http://` is allowed only when typed
+  explicitly (for LAN servers); `https://` is the default.
+
 ## Stack
 
 Kotlin 2.4 · Jetpack Compose + Material 3 (dark only) · AndroidX Media3 ExoPlayer · Room · DataStore ·
-Coil 3 (+ video frames) · Haze (backdrop blur) · Navigation Compose · manual DI (`AppContainer`).
+Coil 3 (+ video frames, OkHttp network) · OkHttp 5 · Haze (backdrop blur) · Navigation Compose · manual DI (`AppContainer`).
 AGP 9.5 / Gradle 9.9 (wrapper included), JDK 21, compile/target SDK 37.
 
 ## Design system
@@ -87,12 +112,15 @@ app.scrollback
 ├── core/            pure Kotlin: duplicate hashing, PIN hashing, tags, feed ordering (unit-tested)
 ├── data/
 │   ├── db/          Room entities + DAOs (generic media kinds: video, image, audio)
-│   ├── source/      MediaSource abstraction — SafMediaSource now; WebDAV later
+│   ├── source/      MediaSource abstraction — Saf, Raw (java.io), WebDav (Nextcloud)
 │   ├── repo/        LibraryRepository, DuplicateRepository
 │   └── prefs/       DataStore settings
 ├── feature/         feed, pictures, files, library, settings (folders, duplicates), lock
 ├── files/           file manager backends (Raw java.io / SAF / MediaStore), sort, names, clipboard ops
-├── sync/            phase 3 placeholder (Nextcloud)
+├── accounts/        server accounts + Keystore-encrypted credentials, ServerManager
+├── remote/          OkHttp + RemoteAuth, WebDAV client/parser, Nextcloud Login Flow v2, downloads
+├── player/          Media3 factory: local files direct, remote via cache -> resolver -> OkHttp
+├── sync/            Nextcloud library sync (LWW model + engine)
 └── ui/              theme tokens, glass components, navigation
 ```
 
@@ -108,7 +136,7 @@ sources can appear in the same feeds later.
 3. **Phase 3 — Nextcloud:** `WebDavMediaSource` (PROPFIND scan) that **streams** remote videos in the
    same feeds without downloading first (Media3 `DefaultHttpDataSource` with auth headers), plus
    sync of likes/notes/tags/playlists and optional offline copies. Login Flow v2 app password,
-   stored encrypted.
+   stored encrypted. ✅ v0.3.0
 4. **Phase 4 — music player:** Media3 `MediaSessionService` for background playback and lock-screen
    controls, reusing folders, likes, playlists and tags (the index already has an `audio` kind);
    optional tab toggled in Settings; Nextcloud audio streaming later.
