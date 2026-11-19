@@ -166,6 +166,21 @@ Every feed, the player, sharing and the duplicate finder go through `MediaSource
 (`scan()`, `playback()` → URI + headers, `byteSource()`, `delete()`, `shareUri()`), so remote
 sources can appear in the same feeds later.
 
+## Convert with VERT (v0.9)
+
+- **Files → Tools → Convert (VERT)**, or select a file in Files and tap **Convert**.
+- **Video** (mp4, mkv, mov, avi, webm, …) converts on a **vertd** server. You choose MP4, WebM, MKV, MOV, AVI, GIF,
+  animated WebP/APNG, M4V or 3GP, at Fast, Balanced or Quality speed. The app uploads the file, follows
+  the job's progress over vertd's websocket, downloads the result to `Download/Scrollback/`, and then confirms
+  so the server deletes its copy.
+- **Images, audio and documents** open in the VERT web app, which converts them inside the browser, so nothing
+  is uploaded.
+- **Server:** the default is https://vert.sh with vertd https://vertd.vert.sh (run by the VERT team). There is a preset for
+  **https://vert.example.com**; set its vertd URL there, because self-hosted VERT shows it in its settings. You can add an optional
+  extra header (`Name: value`) for a vertd behind an auth proxy. It is stored encrypted and only sent to vertd.
+- VERT and vertd are separate GPL-3.0 projects by the VERT team (https://github.com/VERT-sh). Scrollback
+  only talks to their public HTTP API and includes none of their code.
+
 ## Notes and archives (v0.8)
 
 - **Notes** (Files → Tools → Notes, or tap any `.md` / `.txt` file in Files): a Markdown and plain-text editor.

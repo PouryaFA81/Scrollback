@@ -133,7 +133,7 @@ private fun AppNav() {
         }
         composable("browse?root={root}", arguments = listOf(navArgument("root") { type = NavType.StringType; defaultValue = "" })) { entry ->
             val root = FileRoute.decode(entry.arguments?.getString("root").orEmpty())
-            if (root != null) FileBrowserScreen(root, onBack = { nav.popBackStack() }, onOpenNote = { nav.navigate("note?file=${FileRoute.encodeFile(it)}") }) else nav.popBackStack()
+            if (root != null) FileBrowserScreen(root, onBack = { nav.popBackStack() }, onOpenNote = { nav.navigate("note?file=${FileRoute.encodeFile(it)}") }, onConvert = { nav.navigate("convert?file=${FileRoute.encodeFile(it)}") }) else nav.popBackStack()
         }
         composable("note?file={file}", arguments = listOf(navArgument("file") { type = NavType.StringType; defaultValue = "" })) { entry ->
             val file = FileRoute.decode(entry.arguments?.getString("file").orEmpty())
@@ -141,6 +141,10 @@ private fun AppNav() {
         }
         composable("notes") {
             app.scrollback.feature.notes.NotesScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate("note?file=${FileRoute.encodeFile(it)}") })
+        }
+        composable("convert?file={file}", arguments = listOf(navArgument("file") { type = NavType.StringType; defaultValue = "" })) { entry ->
+            val file = entry.arguments?.getString("file").orEmpty().takeIf { it.isNotEmpty() }?.let { FileRoute.decode(it) }
+            app.scrollback.feature.convert.ConvertScreen(file, onBack = { nav.popBackStack() })
         }
         composable("archives") {
             app.scrollback.feature.files.ArchivesToolScreen(onBack = { nav.popBackStack() }, onBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") })

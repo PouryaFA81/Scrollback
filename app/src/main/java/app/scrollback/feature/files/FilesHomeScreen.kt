@@ -38,6 +38,7 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.outlined.Transform
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Movie
@@ -336,6 +337,12 @@ private fun ToolsCard(onOpenTool: (String) -> Unit) {
             subtitle = "Extract ZIP, TAR, GZ, XZ and 7z; compress files to ZIP",
             leading = { Icon(Icons.Outlined.FolderZip, null, tint = SbColors.TextPrimary) },
             onClick = { onOpenTool("archives") },
+        )
+        ListRow(
+            title = "Convert (VERT)",
+            subtitle = "Convert videos via vertd; images, audio and docs in VERT",
+            leading = { Icon(Icons.Outlined.Transform, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("convert") },
         )
     }
 }

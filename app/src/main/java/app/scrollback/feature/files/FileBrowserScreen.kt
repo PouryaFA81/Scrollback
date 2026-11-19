@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.outlined.Transform
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Share
@@ -127,7 +128,7 @@ fun SelectionBar(actions: List<BarAction>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode) -> Unit = {}) {
+fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode) -> Unit = {}, onConvert: (FileNode) -> Unit = {}) {
     val container = LocalContainer.current
     val files = container.files
     val ctx = LocalContext.current
@@ -256,6 +257,7 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode)
                             BarAction("Delete", Icons.Outlined.Delete, enabled = dir.canWrite) { deleting = selectedNodes },
                             BarAction("Share", Icons.Outlined.Share) { val sel = selectedNodes; withLocal(sel.filter { !it.isDir }) { shareNodes(ctx, it) } },
                             BarAction("Compress", Icons.Outlined.FolderZip, enabled = dir.canWrite && busy == null) { compressing = selectedNodes },
+                            BarAction("Convert", Icons.Outlined.Transform, enabled = single != null && !single.isDir) { val n = single!!; selection = emptySet(); onConvert(n) },
                             BarAction("Info", Icons.Outlined.Info, enabled = single != null) { info = single },
                             BarAction("Add source", Icons.Outlined.AddToPhotos, enabled = single?.isDir == true) {
                                 val n = single!!
