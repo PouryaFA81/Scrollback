@@ -34,6 +34,11 @@ class PlayerPrefs(context: Context) {
         get() = p.getBoolean("sub_bg", false)
         set(v) = p.edit().putBoolean("sub_bg", v).apply()
 
+    /** Turn on the first subtitle track when a file has subtitles but none is marked default. */
+    var autoSubtitles: Boolean
+        get() = p.getBoolean("auto_subs", true)
+        set(v) = p.edit().putBoolean("auto_subs", v).apply()
+
     var autoPip: Boolean
         get() = p.getBoolean("auto_pip", true)
         set(v) = p.edit().putBoolean("auto_pip", v).apply()

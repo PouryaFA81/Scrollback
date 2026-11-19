@@ -6,7 +6,7 @@ import android.content.res.AssetFileDescriptor
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import android.view.TextureView
+import android.view.SurfaceView
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -48,7 +48,7 @@ class VlcEngine private constructor(private val app: Context, private val contai
     private var player: MediaPlayer? = null
     private var afd: AssetFileDescriptor? = null
     private var loopback: LoopbackStream? = null
-    private var views: Pair<TextureView, TextureView>? = null
+    private var views: Pair<SurfaceView, SurfaceView>? = null
     private var layoutListener: IVLCVout.OnNewVideoLayoutListener? = null
 
     var items by mutableStateOf<List<PlayItem>>(emptyList()); private set
@@ -90,6 +90,7 @@ class VlcEngine private constructor(private val app: Context, private val contai
 
     private fun ensure(): MediaPlayer {
         player?.let { return it }
+        android.util.Log.d("SbPlayer", "new libVLC player")
         val lib = LibVLC(app, options()).also { libVlc = it }
         return MediaPlayer(lib).also { mp ->
             mp.setEventListener(::onEvent)
@@ -99,9 +100,18 @@ class VlcEngine private constructor(private val app: Context, private val contai
     }
 
     private fun onEvent(e: MediaPlayer.Event) {
+        if (e.type != MediaPlayer.Event.TimeChanged && e.type != MediaPlayer.Event.PositionChanged) android.util.Log.d("SbPlayer", "raw event 0x${Integer.toHexString(e.type)} player=${player != null}")
         val mp = player ?: return
+        if (e.type != MediaPlayer.Event.TimeChanged && e.type != MediaPlayer.Event.PositionChanged && e.type != MediaPlayer.Event.Buffering)
+            android.util.Log.d("SbPlayer", "event 0x${Integer.toHexString(e.type)}")
         when (e.type) {
-            MediaPlayer.Event.Playing -> { playing = true; buffering = false; ended = false; error = null; onStateChanged?.invoke() }
+            MediaPlayer.Event.Playing -> {
+                playing = true; buffering = false; ended = false; error = null; onStateChanged?.invoke()
+                if (autoSubPending) {
+                    autoSubPending = false
+                    if (mp.spuTrack == -1) mp.spuTracks?.firstOrNull { it.id != -1 }?.let { mp.spuTrack = it.id; tracksVersion++ }
+                }
+            }
             MediaPlayer.Event.Paused -> { playing = false; onStateChanged?.invoke() }
             MediaPlayer.Event.Stopped -> { playing = false; onStateChanged?.invoke() }
             MediaPlayer.Event.Buffering -> buffering = e.buffering < 100f
@@ -131,17 +141,29 @@ class VlcEngine private constructor(private val app: Context, private val contai
 
     // ---- Views ----
 
-    fun attachViews(video: TextureView, subs: TextureView, onLayout: (VideoLayout) -> Unit) {
+    fun attachViews(video: SurfaceView, subs: SurfaceView, onLayout: (VideoLayout) -> Unit) {
         layoutListener = IVLCVout.OnNewVideoLayoutListener { _, w, h, vw, vh, sn, sd ->
             val l = VideoLayout(w, h, vw, vh, sn, sd); layout = l; onLayout(l)
+            android.util.Log.d("SbPlayer", "layout $l")
         }
         views = video to subs
-        player?.let { attachTo(it, video, subs) }
+        attachTo(ensure(), video, subs)
+        deferredOpen?.invoke()
     }
 
-    private fun attachTo(mp: MediaPlayer, video: TextureView, subs: TextureView) {
+    /** (player, view) currently attached: libVLC's AWindow throws if views are re-attached needlessly. */
+    private var attached: Pair<MediaPlayer, SurfaceView>? = null
+
+    private fun attachTo(mp: MediaPlayer, video: SurfaceView, subs: SurfaceView) {
         val vout = mp.vlcVout
+        if (attached?.first === mp && attached?.second === video && vout.areViewsAttached()) {
+            setWindowSize(video.width.takeIf { it > 0 } ?: video.resources.displayMetrics.widthPixels,
+                video.height.takeIf { it > 0 } ?: video.resources.displayMetrics.heightPixels)
+            return
+        }
+        android.util.Log.d("SbPlayer", "attach views (wasAttached=${vout.areViewsAttached()})")
         if (vout.areViewsAttached()) vout.detachViews()
+        attached = mp to video
         vout.setVideoView(video)
         vout.setSubtitlesView(subs)
         vout.attachViews(layoutListener)
@@ -160,7 +182,9 @@ class VlcEngine private constructor(private val app: Context, private val contai
     }
 
     fun detachViews() {
+        android.util.Log.d("SbPlayer", "detach views")
         views = null
+        attached = null
         player?.vlcVout?.let { if (it.areViewsAttached()) it.detachViews() }
     }
 
@@ -210,9 +234,16 @@ class VlcEngine private constructor(private val app: Context, private val contai
     }
 
     private var pendingResume = 0L
+    private var autoSubPending = false
+
+    /** Opening before the surfaces exist makes libVLC skip MediaCodec, so wait for the views. */
+    private var deferredOpen: (() -> Unit)? = null
 
     private fun open(uri: String, resumeMs: Long, exact: Boolean = false) {
+        if (views == null && !videoOff) { deferredOpen = { open(uri, resumeMs, exact) }; return }
+        deferredOpen = null
         val mp = ensure()
+        android.util.Log.d("SbPlayer", "open $uri resume=$resumeMs")
         val lib = libVlc ?: return
         afd?.let { runCatching { it.close() } }; afd = null
         val u = Uri.parse(uri)
@@ -236,6 +267,7 @@ class VlcEngine private constructor(private val app: Context, private val contai
         if (pendingResume > 0) media.addOption(":start-time=${pendingResume / 1000.0}")
         mp.media = media
         media.release()
+        autoSubPending = prefs.autoSubtitles
         mp.rate = rate
         mp.play()
         // Delays are per media in libVLC; re-apply the user's choice.
@@ -309,6 +341,7 @@ class VlcEngine private constructor(private val app: Context, private val contai
             runCatching { mp.setEventListener(null); mp.vlcVout.detachViews(); mp.stop(); mp.release() }
         }
         player = null
+        attached = null
         libVlc?.let { runCatching { it.release() } }
         libVlc = null
     }

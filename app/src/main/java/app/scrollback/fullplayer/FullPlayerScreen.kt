@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 import android.media.AudioManager
 import android.provider.MediaStore
 import android.view.Gravity
-import android.view.TextureView
+import android.view.SurfaceView
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -86,7 +86,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
@@ -169,7 +168,7 @@ fun FullPlayerScreen(activity: FullPlayerActivity, engine: VlcEngine) {
     BackHandler(enabled = locked) { flash(Icons.Outlined.Lock, "Screen locked. Tap the lock to unlock") }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        // ---- Video surface (sized by PlayerMath, zoomed/panned with graphicsLayer) ----
+        // ---- Video surface (sized by PlayerMath; pinch zoom/pan resize and move the frame) ----
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val wPx = constraints.maxWidth; val hPx = constraints.maxHeight
             LaunchedEffect(wPx, hPx) { screen = wPx to hPx; engine.setWindowSize(wPx, hPx) }
@@ -181,8 +180,9 @@ fun FullPlayerScreen(activity: FullPlayerActivity, engine: VlcEngine) {
                     FrameLayout(c).apply {
                         clipChildren = true
                         val frame = FrameLayout(c).apply { clipChildren = true }
-                        val video = TextureView(c)
-                        val subs = TextureView(c).apply { isOpaque = false }
+                        val video = SurfaceView(c)
+                        // Subtitles get their own transparent surface above the video (libVLC can't blend into HW-decoded frames).
+                        val subs = SurfaceView(c).apply { setZOrderMediaOverlay(true); holder.setFormat(android.graphics.PixelFormat.TRANSLUCENT) }
                         frame.addView(video, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
                         frame.addView(subs, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
                         addView(frame, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT, Gravity.CENTER))
@@ -194,14 +194,16 @@ fun FullPlayerScreen(activity: FullPlayerActivity, engine: VlcEngine) {
                     val frame = root.getChildAt(0) as FrameLayout
                     val video = frame.getChildAt(0); val subs = frame.getChildAt(1)
                     if (disp != null && surf != null) {
-                        frame.layoutParams = FrameLayout.LayoutParams(disp.w.roundToInt(), disp.h.roundToInt(), Gravity.CENTER)
-                        val lp = FrameLayout.LayoutParams(surf.first, surf.second, Gravity.TOP or Gravity.START)
-                        video.layoutParams = lp; subs.layoutParams = FrameLayout.LayoutParams(surf.first, surf.second, Gravity.TOP or Gravity.START)
+                        frame.layoutParams = FrameLayout.LayoutParams((disp.w * zoom).roundToInt(), (disp.h * zoom).roundToInt(), Gravity.CENTER)
+                        val sw = (surf.first * zoom).roundToInt(); val sh = (surf.second * zoom).roundToInt()
+                        video.layoutParams = FrameLayout.LayoutParams(sw, sh, Gravity.TOP or Gravity.START)
+                        subs.layoutParams = FrameLayout.LayoutParams(sw, sh, Gravity.TOP or Gravity.START)
+                        frame.translationX = pan.x; frame.translationY = pan.y
                     } else {
                         frame.layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT, Gravity.CENTER)
                     }
                 },
-                modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = zoom; scaleY = zoom; translationX = pan.x; translationY = pan.y },
+                modifier = Modifier.fillMaxSize(),
             )
         }
 
@@ -393,8 +395,8 @@ fun FullPlayerScreen(activity: FullPlayerActivity, engine: VlcEngine) {
                             ToolPill(Icons.Outlined.PictureInPictureAlt, "PiP") { activity.enterPip() }
                             ToolPill(Icons.Outlined.CameraAlt, "Frame") {
                                 poke()
-                                val bmp = activity.videoView?.bitmap
                                 scope.launch {
+                                    val bmp = activity.videoView?.let { copyFrame(it) }
                                     val ok = bmp != null && saveFrame(ctx, bmp, engine.current?.name ?: "frame", engine.timeMs)
                                     Toast.makeText(ctx, if (ok) "Frame saved to Pictures/Scrollback" else "Couldn't capture this frame", Toast.LENGTH_SHORT).show()
                                 }
@@ -440,11 +442,15 @@ fun FullPlayerScreen(activity: FullPlayerActivity, engine: VlcEngine) {
             var hw by remember { mutableStateOf(engine.hwDecoding) }
             var bg by remember { mutableStateOf(engine.prefs.backgroundAudio) }
             var pip by remember { mutableStateOf(engine.prefs.autoPip) }
+            var subs by remember { mutableStateOf(engine.prefs.autoSubtitles) }
             SettingsRow("Hardware decoding", subtitle = "Faster and saves battery. Turn off if a video shows artefacts or a green screen.", trailing = {
                 SbSwitch(hw) { hw = it; engine.setHardwareDecoding(it) }
             })
             SettingsRow("Background audio", subtitle = "Keep playing the sound when you leave the player or lock the phone.", trailing = {
                 SbSwitch(bg) { bg = it; engine.prefs.backgroundAudio = it }
+            })
+            SettingsRow("Show subtitles automatically", subtitle = "Turn on the first subtitle track when a video has one.", trailing = {
+                SbSwitch(subs) { subs = it; engine.prefs.autoSubtitles = it }
             })
             SettingsRow("Picture-in-picture on Home", subtitle = "Shrink to a floating window when you go Home while a video plays.", trailing = {
                 SbSwitch(pip) { pip = it; engine.prefs.autoPip = it; activity.updatePip() }
@@ -581,6 +587,15 @@ private fun currentBrightness(a: FullPlayerActivity): Float {
 
 private fun setBrightness(a: FullPlayerActivity, level: Float) {
     a.window.attributes = a.window.attributes.apply { screenBrightness = level.coerceIn(0.01f, 1f) }
+}
+
+/** Grabs the current video frame from the SurfaceView (PixelCopy works with hardware-decoded video too). */
+private suspend fun copyFrame(v: SurfaceView): Bitmap? {
+    if (v.width <= 0 || v.height <= 0 || !v.holder.surface.isValid) return null
+    val bmp = Bitmap.createBitmap(v.width, v.height, Bitmap.Config.ARGB_8888)
+    return kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+        android.view.PixelCopy.request(v, bmp, { r -> cont.resumeWith(Result.success(if (r == android.view.PixelCopy.SUCCESS) bmp else null)) }, android.os.Handler(android.os.Looper.getMainLooper()))
+    }
 }
 
 private suspend fun saveFrame(ctx: android.content.Context, bmp: Bitmap, name: String, atMs: Long): Boolean = withContext(Dispatchers.IO) {

@@ -13,7 +13,7 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
 import android.util.Rational
-import android.view.TextureView
+import android.view.SurfaceView
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -40,8 +40,8 @@ class FullPlayerActivity : ComponentActivity() {
     var engine: VlcEngine? = null; private set
     var inPip by mutableStateOf(false); private set
     /** Views the engine renders into; kept so they can be re-attached after onStop. */
-    var videoView: TextureView? = null
-    var subsView: TextureView? = null
+    var videoView: SurfaceView? = null
+    var subsView: SurfaceView? = null
     var onLayoutChanged: ((VideoLayout) -> Unit)? = null
 
     private val pipReceiver = object : BroadcastReceiver() {
@@ -52,6 +52,7 @@ class FullPlayerActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) { setShowWhenLocked(true); setTurnScreenOn(true) } // SBTEMP
         window.attributes = window.attributes.apply {
             layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
         }
