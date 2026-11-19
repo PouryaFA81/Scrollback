@@ -118,7 +118,7 @@ fun DuplicatesScreen(onBack: () -> Unit) {
             ),
             verticalArrangement = Arrangement.spacedBy(SbSpace.m),
         ) {
-            item { LargeTitle("Duplicates", "Byte-identical files across all your folders. Matching is by size, then a fingerprint, then a full hash.") }
+            item { LargeTitle("Duplicates", "Byte-identical files across all your folders. Matching is by size, then a fingerprint, then a full hash.", horizontalPadding = SbSpace.s) }
             item {
                 Row(Modifier.padding(horizontal = SbSpace.s)) {
                     GlassPill(if (groups == null) "Scan library" else "Scan again", selected = groups == null, icon = Icons.Outlined.Search, onClick = { if (!running) scan() })

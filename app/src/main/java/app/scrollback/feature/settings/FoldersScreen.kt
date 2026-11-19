@@ -96,7 +96,7 @@ fun FoldersScreen(onBack: () -> Unit) {
             ),
             verticalArrangement = Arrangement.spacedBy(SbSpace.s),
         ) {
-            item { LargeTitle("Folders", "Pick any folders with saved videos and pictures. Subfolders are included.") }
+            item { LargeTitle("Folders", "Pick any folders with saved videos and pictures. Subfolders are included.", horizontalPadding = SbSpace.s) }
             if (scan.running) {
                 item {
                     LinearProgressIndicator(

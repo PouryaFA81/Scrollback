@@ -42,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import app.scrollback.ui.theme.SbColors
 import app.scrollback.ui.theme.SbMotion
@@ -77,7 +78,7 @@ fun FloatingGlassNav(
         val bubbleX by animateDpAsState(itemWidth * index, SbMotion.spring(), label = "bubble")
         Box(
             Modifier
-                .offset(x = bubbleX)
+                .offset { IntOffset(bubbleX.roundToPx(), 0) }
                 .width(itemWidth)
                 .fillMaxHeight()
                 .padding(6.dp)
@@ -119,12 +120,12 @@ fun FloatingGlassNav(
 
 /** One UI-style large title shown as the first item of a scrolling screen. */
 @Composable
-fun LargeTitle(title: String, subtitle: String? = null, modifier: Modifier = Modifier) {
+fun LargeTitle(title: String, subtitle: String? = null, modifier: Modifier = Modifier, horizontalPadding: Dp = SbSpace.screenH) {
     Column(
         modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(start = SbSpace.screenH, end = SbSpace.screenH, top = 72.dp, bottom = SbSpace.xl),
+            .padding(start = horizontalPadding, end = horizontalPadding, top = 72.dp, bottom = SbSpace.xl),
     ) {
         Text(title, style = MaterialTheme.typography.displaySmall, color = SbColors.TextPrimary)
         if (subtitle != null) {
@@ -288,7 +289,7 @@ fun EmptyState(icon: ImageVector, title: String, body: String, modifier: Modifie
         Spacer(Modifier.height(SbSpace.l))
         Text(title, style = MaterialTheme.typography.titleLarge, color = SbColors.TextPrimary)
         Spacer(Modifier.height(SbSpace.s))
-        Text(body, style = MaterialTheme.typography.bodyMedium, color = SbColors.TextSecondary)
+        Text(body, style = MaterialTheme.typography.bodyMedium, color = SbColors.TextSecondary, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         if (action != null) {
             Spacer(Modifier.height(SbSpace.xl))
             action()

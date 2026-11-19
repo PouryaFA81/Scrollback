@@ -121,7 +121,7 @@ fun LibraryScreen(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            full { LargeTitle("Library") }
+            full { LargeTitle("Library", horizontalPadding = SbSpace.s) }
             full {
                 Row(
                     Modifier.horizontalScroll(rememberScrollState()).padding(bottom = SbSpace.l),
@@ -132,7 +132,7 @@ fun LibraryScreen(
                     }
                 }
             }
-            if (showHidden) {
+            if (showHidden && settings.hasPin) {
                 full {
                     ListRow(
                         title = "Hidden items",

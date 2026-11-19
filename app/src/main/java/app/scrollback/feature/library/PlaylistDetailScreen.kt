@@ -77,7 +77,7 @@ fun PlaylistDetailScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(SbSpace.s),
         ) {
-            item { LargeTitle(name, "${items.size} items") }
+            item { LargeTitle(name, "${items.size} items", horizontalPadding = SbSpace.s) }
             item {
                 Row(Modifier.padding(bottom = SbSpace.m), horizontalArrangement = Arrangement.spacedBy(SbSpace.s)) {
                     GlassPill("Play", selected = true, icon = Icons.Outlined.PlayArrow, onClick = {
