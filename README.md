@@ -166,6 +166,17 @@ Every feed, the player, sharing and the duplicate finder go through `MediaSource
 (`scan()`, `playback()` → URI + headers, `byteSource()`, `delete()`, `shareUri()`), so remote
 sources can appear in the same feeds later.
 
+## Watch: Jellyfin movies and shows (v0.12)
+
+- **Library → Watch.** It uses the Jellyfin account from **Settings → Servers** (the same sign-in as Jellyfin music; only the access token is stored, encrypted). With several Jellyfin accounts, switch with the ⇄ button.
+- **Home**: Continue watching and Next up (tap to resume), Recently added movies and shows, Favorites. **Movies**, **Shows** and **Collections** are poster grids that load 60 at a time. Swipe left/right to move between them. **Search** covers movies, shows, episodes and collections.
+- **Details**: backdrop, year, runtime, rating, genres, overview, director/writer and cast. Shows list seasons and episodes with progress, plus a "Play S1:E3" button for Next up. Collections list their movies. **Mark played/unplayed** and **favorite** are saved on the server.
+- **Playback (Media3)**: Scrollback sends Jellyfin a device profile (H.264/HEVC/VP9/AV1, AAC/MP3/Opus/FLAC/AC3/EAC3, MP4/MKV/WebM). If the server says the phone can play the file, it plays the original (`/Videos/{id}/stream?static=true`). Otherwise it uses Jellyfin's **HLS transcode** from `PlaybackInfo`. If the phone fails to decode a file it was told it could play, Scrollback asks for a transcode automatically. The top bar shows Direct play or Transcoding.
+- **Audio and subtitles**: pick from Jellyfin's list. Embedded tracks switch on the phone, external text subtitles (SRT/VTT/ASS) are side-loaded, and image subtitles that need it (PGS/DVD while transcoding) are burned in by the server.
+- **Resume and reporting**: starts at Jellyfin's resume point (or From start). Reports `/Sessions/Playing`, progress every 10 s and on pause/track changes, and `/Sessions/Playing/Stopped`, so the resume point and played state stay in sync with other Jellyfin apps.
+- Auth goes in request headers, never in URLs (`api_key` is stripped from server-made URLs), so tokens stay out of caches and logs. Images load through the same client (Coil + OkHttp), so they carry the auth headers too.
+- **Not yet tested against a real Jellyfin server**: covered by unit tests with a fake server (MockWebServer) and a local stub server on the phone.
+
 ## Nearby share (v0.11)
 
 LocalSend-compatible file sharing on the local network. It works with the official

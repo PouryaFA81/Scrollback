@@ -20,9 +20,10 @@ Symfonium, Finamp, NewPipe and TikTok._
 | 0.6 | In-app updates (on tap only), dedicated release key, R8 + ABI splits (~5.7 MB per APK) |
 | 0.7 | SFTP + SMB network storage under Files → Tools, TOFU host-key pinning, streaming into feeds |
 | 0.8 | Notes (Markdown editor + preview, Obsidian-friendly) and Archives (extract zip/tar/gz/bz2/xz/7z, compress to zip); swipe between Library and Music sub-tabs |
+| 0.9 | Convert with VERT: video via vertd (upload → websocket job → download → confirm), other types in the VERT web app; vert.sh default, self-hosted preset |
 | 0.10 | Office: PDF viewer (swipe, zoom, jump, search), DOCX/XLSX/PPTX viewers via XmlPullParser (no POI, +145 KB), CSV/TSV editor, Open with |
 | 0.11 | Nearby share: LocalSend v2 (multicast + subnet scan, HTTPS self-signed + fingerprint pinning, PIN, quick save), ported from RSend; CSV in Documents; recent strip opens in Scrollback |
-| 0.9 | Convert with VERT: video via vertd (upload → websocket job → download → confirm), other types in the VERT web app; vert.sh default, self-hosted preset |
+| 0.12 | Watch: Jellyfin movies, shows → seasons → episodes, collections, Continue watching / Next up, details, search; Media3 direct play with HLS-transcode fallback (PlaybackInfo + device profile); audio/subtitle tracks (embedded, external, burn-in); resume and progress reporting; played/favorite sync |
 
 ## Phase A: File-manager add-ons (0.6–0.10) ✅
 
@@ -43,8 +44,8 @@ The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office)
 
 | Version | What | Notes |
 |---|---|---|
+| 0.12.0 ✅ | **Jellyfin video (Watch)** | Movies, Shows → Seasons → Episodes and Collections, with posters. Continue watching and resume. Played state and progress reported back (`/Sessions/Playing`, `/Progress`, `/Stopped`). Direct play when the device can decode it, otherwise Jellyfin HLS transcoding. Subtitles (embedded, external, burn-in fallback). Lives as a **Watch** entry at the top of Library (its own screen with Home / Movies / Shows / Collections pills), not a sixth tab. Tested against a fake server only (unit tests with MockWebServer and a local stub on the phone); not yet against a real Jellyfin. |
 | 0.13.0 | **Full movie player** | A long-form player, separate from the swipe feed. Gestures: brightness/volume/seek swipes, double-tap seek, pinch zoom. Aspect and crop modes. Subtitles: embedded plus external SRT/ASS, with styling and delay. Audio track and audio delay. HW/SW decoding toggle, speed, A-B repeat, PiP, background audio, resume, lock controls. "Open with Scrollback" for video files. The feed keeps Media3 and hands codecs it can't play to this player. |
-| 0.12.0 | **Jellyfin video (Watch)** | Movies, Shows → Seasons → Episodes and Collections, with posters. Continue watching and resume. Played state and progress reported back (`/Sessions/Playing`, `/Progress`, `/Stopped`). Direct play when the device can decode it, otherwise Jellyfin HLS transcoding. Subtitles (embedded, external, burn-in fallback). Lives as a **Watch** section in Library (and a Library segment), not a sixth tab. |
 
 **Player backend decision (to confirm while building 0.13):**
 
