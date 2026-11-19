@@ -37,6 +37,13 @@ object SbColors {
     val GlassOverVideo = Color(0x59000000)      // translucent disc over video (no blur, cheap)
     val GlassBorderTop = Color(0x33FFFFFF)
     val GlassBorderBottom = Color(0x0DFFFFFF)
+
+    /**
+     * Fixed surface for persistent chrome (bottom nav, mini player). Near-opaque so it looks identical
+     * over video, grids, lists and empty black screens — no backdrop sampling, no varying tint.
+     */
+    val ChromeSurface = Color(0xF0121214)       // 94% #121214
+    val ChromeHighlight = Color(0x24FFFFFF)     // selection bubble, 14% white
 }
 
 object SbRadius {

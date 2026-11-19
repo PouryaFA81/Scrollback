@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CollectionsBookmark
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shuffle
@@ -35,6 +36,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.scrollback.data.prefs.Settings
 import app.scrollback.feature.feed.FeedScreen
+import app.scrollback.feature.files.CategoryScreen
+import app.scrollback.feature.files.FileBrowserScreen
+import app.scrollback.feature.files.FileRoute
+import app.scrollback.feature.files.FilesHomeScreen
+import app.scrollback.files.Category
+import app.scrollback.files.FileNode
 import app.scrollback.feature.feed.FeedSpec
 import app.scrollback.feature.library.LibraryScreen
 import app.scrollback.feature.library.PlaylistDetailScreen
@@ -57,6 +64,7 @@ private val TABS = listOf(
     NavItem("random", "Random", Icons.Outlined.Shuffle),
     NavItem("saved", "Saved", Icons.Outlined.VideoLibrary),
     NavItem("pictures", "Pictures", Icons.Outlined.Image),
+    NavItem("files", "Files", Icons.Outlined.Folder),
     NavItem("library", "Library", Icons.Outlined.CollectionsBookmark),
     NavItem("settings", "Settings", Icons.Outlined.Settings),
 )
@@ -93,7 +101,17 @@ private fun AppNav() {
                 openPlaylist = { nav.navigate("playlist/$it") },
                 openFolders = { nav.navigate("folders") },
                 openDuplicates = { nav.navigate("duplicates") },
+                openBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") },
+                openCategory = { nav.navigate("category/${it.name}") },
             )
+        }
+        composable("browse?root={root}", arguments = listOf(navArgument("root") { type = NavType.StringType; defaultValue = "" })) { entry ->
+            val root = FileRoute.decode(entry.arguments?.getString("root").orEmpty())
+            if (root != null) FileBrowserScreen(root, onBack = { nav.popBackStack() }) else nav.popBackStack()
+        }
+        composable("category/{cat}") { entry ->
+            val cat = runCatching { Category.valueOf(entry.arguments?.getString("cat").orEmpty()) }.getOrDefault(Category.VIDEOS)
+            CategoryScreen(cat, onBack = { nav.popBackStack() })
         }
         composable(
             "feed/{kind}?arg={arg}&start={start}",
@@ -127,6 +145,8 @@ private fun MainTabs(
     openPlaylist: (Long) -> Unit,
     openFolders: () -> Unit,
     openDuplicates: () -> Unit,
+    openBrowse: (FileNode) -> Unit,
+    openCategory: (Category) -> Unit,
 ) {
     val container = LocalContainer.current
     val haptics = rememberHaptics()
@@ -134,7 +154,6 @@ private fun MainTabs(
     var tab by rememberSaveable { mutableStateOf("random") }
     var seed by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
     val haze = rememberHazeState()
-    val isFeed = tab == "random" || tab == "saved"
 
     CompositionLocalProvider(LocalHazeState provides haze) {
         Box(Modifier.fillMaxSize().background(SbColors.Background)) {
@@ -174,6 +193,7 @@ private fun MainTabs(
                         },
                     )
                     "pictures" -> PicturesScreen(onOpen = openFeed)
+                    "files" -> FilesHomeScreen(onBrowse = openBrowse, onCategory = openCategory)
                     "library" -> LibraryScreen(onOpen = openFeed, onOpenPlaylist = openPlaylist)
                     else -> SettingsScreen(onOpenFolders = openFolders, onOpenDuplicates = openDuplicates)
                 }
@@ -182,7 +202,6 @@ private fun MainTabs(
                 items = TABS,
                 selected = tab,
                 onSelect = { tab = it },
-                overVideo = isFeed,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }

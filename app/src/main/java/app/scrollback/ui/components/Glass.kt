@@ -75,6 +75,17 @@ fun Modifier.glass(
     return frosted.border(SbGlass.border, glassBorder, shape)
 }
 
+/**
+ * Persistent chrome surface (bottom nav, mini player): one fixed token on every screen, so the
+ * bar never changes colour with what scrolls behind it. Same border and shadow as [glass].
+ */
+fun Modifier.chromeGlass(shape: Shape, elevation: Dp = SbGlass.shadow): Modifier =
+    this
+        .shadow(elevation, shape, clip = false, ambientColor = Color.Black, spotColor = Color.Black)
+        .clip(shape)
+        .background(SbColors.ChromeSurface)
+        .border(SbGlass.border, glassBorder, shape)
+
 /** Haptic helpers (Telegram-like crisp ticks). */
 @Stable
 class Haptics(private val view: android.view.View) {

@@ -6,7 +6,7 @@ Saved TikToks pile up in a folder and gallery apps make them hard to find or re-
 indexes the folders you pick and plays them in a full-screen vertical feed — shuffled or in the
 order you saved them — with likes, playlists, notes, tags and search. Nothing leaves the device.
 
-> Status: **v0.1 (phase 1)** — early, personal project. Android 13+ (minSdk 33).
+> Status: **v0.2 (phase 2)** — early, personal project. Android 13+ (minSdk 33).
 
 ## Features (v1)
 
@@ -28,6 +28,30 @@ order you saved them — with likes, playlists, notes, tags and search. Nothing 
   ties; review screen keeps the oldest copy by default and deletes via SAF after confirmation.
 - No `INTERNET` permission in v1.
 
+## File manager (v0.2)
+
+A My Files / Nextcloud Files-style browser in the **Files** tab:
+
+- **Home:** storage usage summary, MediaStore categories (Videos, Images, Audio, Documents,
+  Downloads, APKs), recent files, locations (granted SAF folders, internal storage with All-files access).
+- **Browser:** breadcrumbs, list / grid, sort by name / date / size / type (asc/desc, folders first),
+  long-press multi-select, copy / move (clipboard + paste bar), rename, delete (with confirmation),
+  new folder, search in the current tree, share, open with, file info, and
+  **Add as Scrollback source** for any folder.
+- Works over **SAF** by default (`DocumentsContract`), or over `java.io.File` when the optional
+  *All files access* is granted. Category deletes go through `MediaStore.createDeleteRequest`
+  (system confirmation) without it.
+
+### About `MANAGE_EXTERNAL_STORAGE`
+
+The manifest declares `MANAGE_EXTERNAL_STORAGE`, but it is **never required**: the app explains what it
+unlocks (browsing the whole internal storage like My Files) and sends you to the system toggle only if
+you opt in. Without it everything uses SAF folder grants.
+
+- **F-Droid:** allowed, but flagged as a sensitive permission in the listing.
+- **Google Play:** the permission is restricted to file-manager / backup / antivirus style apps and needs
+  a declaration form; a Play build would likely ship a flavor without it (SAF only).
+
 ## Stack
 
 Kotlin 2.4 · Jetpack Compose + Material 3 (dark only) · AndroidX Media3 ExoPlayer · Room · DataStore ·
@@ -45,6 +69,7 @@ and haptics) and Claude / Obsidian (calm typography). Tokens live in `ui/theme/T
 | Background | `#000000` (true black) · Surface `#0B0B0C` · SurfaceHigh `#151517` |
 | Text | primary `#F2F2F2` · secondary `#9A9A9E` · tertiary `#5C5C61` |
 | Accent | one restrained near-white `#E7E9EA`; semantic only: like `#F91880`, danger `#FF453A` |
+| Chrome | bottom nav uses a **fixed** near-opaque surface `ChromeSurface #F0121214` + `ChromeHighlight #24FFFFFF` bubble, so it looks identical on every tab and over video (no backdrop sampling) |
 | Glass | 28 dp backdrop blur (RenderEffect, API 31+) + 55% black tint + 12% white fill, 1 dp light gradient border, soft shadow; over video a cheap 35% black disc (SurfaceView can't be sampled, keeps the feed smooth) |
 | Radii | 14 small · 20 card · 24 large · 28 sheet · pill |
 | Spacing | 4 · 8 · 12 · 16 · 20 (screen) · 24 · 32 |
@@ -65,8 +90,8 @@ app.scrollback
 │   ├── source/      MediaSource abstraction — SafMediaSource now; WebDAV later
 │   ├── repo/        LibraryRepository, DuplicateRepository
 │   └── prefs/       DataStore settings
-├── feature/         feed, pictures, library, settings (folders, duplicates), lock
-├── files/           phase 2 placeholder (file manager)
+├── feature/         feed, pictures, files, library, settings (folders, duplicates), lock
+├── files/           file manager backends (Raw java.io / SAF / MediaStore), sort, names, clipboard ops
 ├── sync/            phase 3 placeholder (Nextcloud)
 └── ui/              theme tokens, glass components, navigation
 ```
@@ -77,9 +102,9 @@ sources can appear in the same feeds later.
 
 ## Roadmap
 
-1. **Phase 1 — v1 (this release):** local offline viewer as above.
+1. **Phase 1 — v0.1:** local offline viewer as above. ✅
 2. **Phase 2 — built-in file manager:** One UI "My Files"-style browser (copy/move/rename/delete,
-   folders, multi-select, storage overview) over SAF, in `files/`.
+   folders, multi-select, storage overview) over SAF, in `files/`. ✅ v0.2.0
 3. **Phase 3 — Nextcloud:** `WebDavMediaSource` (PROPFIND scan) that **streams** remote videos in the
    same feeds without downloading first (Media3 `DefaultHttpDataSource` with auth headers), plus
    sync of likes/notes/tags/playlists and optional offline copies. Login Flow v2 app password,

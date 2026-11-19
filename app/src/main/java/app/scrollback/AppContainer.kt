@@ -32,6 +32,7 @@ class AppContainer(context: Context) {
     val sources = MediaSourceRegistry(context)
     val library = LibraryRepository(context, db, sources)
     val duplicates = DuplicateRepository(db, library)
+    val files = app.scrollback.files.FileRepository(context)
 
     private val _session = MutableStateFlow(Session())
     val session: StateFlow<Session> = _session.asStateFlow()

@@ -71,9 +71,21 @@ class LibraryRepository(
         id
     }
 
+    /** Adds a folder picked in the file manager (SAF subfolder of a granted tree, or a raw path). */
+    suspend fun addFolderSource(type: SourceType, uri: String, displayName: String): Long = withContext(Dispatchers.IO) {
+        val id = sourceDao.byUri(uri)?.id ?: sourceDao.insert(
+            SourceEntity(type = type.id, uri = uri, displayName = displayName, addedAt = System.currentTimeMillis())
+        )
+        scan(listOf(id))
+        id
+    }
+
     suspend fun removeSource(sourceId: Long) = withContext(Dispatchers.IO) {
         val s = sourceDao.byId(sourceId) ?: return@withContext
-        if (s.type == SourceType.SAF_TREE.id) {
+        val othersShareTree = sourceDao.all().any { it.id != s.id && it.uri.startsWith(s.uri.substringBefore("/document/")) }
+        if (s.type == SourceType.SAF_TREE.id && android.provider.DocumentsContract.isTreeUri(Uri.parse(s.uri)) &&
+            !s.uri.contains("/document/") && !othersShareTree
+        ) {
             runCatching {
                 context.contentResolver.releasePersistableUriPermission(
                     Uri.parse(s.uri),

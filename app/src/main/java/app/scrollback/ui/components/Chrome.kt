@@ -60,18 +60,16 @@ fun FloatingGlassNav(
     items: List<NavItem>,
     selected: String,
     onSelect: (String) -> Unit,
-    overVideo: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val haptics = rememberHaptics()
-    val hazeState = if (overVideo) null else LocalHazeState.current
     BoxWithConstraints(
         modifier
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = SbSpace.xl, vertical = SbSpace.m)
             .fillMaxWidth()
             .height(64.dp)
-            .glass(SbRadius.Pill, hazeState),
+            .chromeGlass(SbRadius.Pill),
     ) {
         val itemWidth = maxWidth / items.size
         val index = items.indexOfFirst { it.key == selected }.coerceAtLeast(0)
@@ -83,7 +81,7 @@ fun FloatingGlassNav(
                 .fillMaxHeight()
                 .padding(6.dp)
                 .clip(SbRadius.Pill)
-                .background(SbColors.GlassFillStrong),
+                .background(SbColors.ChromeHighlight),
         )
         Row(Modifier.fillMaxWidth().fillMaxHeight()) {
             items.forEach { item ->

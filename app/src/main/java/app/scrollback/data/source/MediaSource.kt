@@ -8,8 +8,17 @@ enum class SourceType(val id: String) {
     /** A local folder picked with the Storage Access Framework (persistable tree URI). */
     SAF_TREE("saf"),
 
-    /** Phase 3: a Nextcloud/WebDAV folder, streamed over HTTP(S) and optionally synced. Not implemented in v1. */
-    WEBDAV("webdav");
+    /** A local folder read directly with java.io.File (needs the optional all-files access). */
+    FILE("file"),
+
+    /** A Nextcloud/WebDAV folder, streamed over HTTPS with auth headers. */
+    WEBDAV("webdav"),
+
+    /** A Subsonic/OpenSubsonic music server (Navidrome, Nextcloud Music, Airsonic, Gonic). */
+    SUBSONIC("subsonic"),
+
+    /** A Jellyfin server's music library. */
+    JELLYFIN("jellyfin");
 
     companion object {
         fun from(id: String): SourceType = entries.firstOrNull { it.id == id } ?: SAF_TREE

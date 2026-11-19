@@ -10,7 +10,10 @@ import java.io.FileInputStream
 import java.io.InputStream
 import java.nio.ByteBuffer
 
-/** Local folder source backed by a persistable SAF tree URI. */
+/**
+ * Local folder source backed by a persistable SAF tree URI. [treeUri] may also be a document URI
+ * inside a granted tree (a subfolder added from the file manager); it is then the scan root.
+ */
 class SafMediaSource(
     override val sourceId: Long,
     private val treeUri: Uri,
@@ -19,7 +22,8 @@ class SafMediaSource(
     override val type = SourceType.SAF_TREE
 
     override fun scan(): Sequence<ScannedEntry> = sequence {
-        val rootId = DocumentsContract.getTreeDocumentId(treeUri)
+        val rootId = runCatching { DocumentsContract.getDocumentId(treeUri) }
+            .getOrElse { DocumentsContract.getTreeDocumentId(treeUri) }
         val stack = ArrayDeque<Pair<String, String>>()
         stack.addLast(rootId to "")
         val projection = arrayOf(
