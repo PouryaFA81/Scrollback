@@ -1,7 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+}
+
+// Release signing: keystore/ is gitignored and holds release.jks + keystore.properties (passwords).
+// Without it, assembleRelease still builds, just unsigned.
+val releaseKeys = rootProject.file("keystore/keystore.properties").takeIf { it.isFile }?.let { f ->
+    Properties().apply { f.inputStream().use { load(it) } }
 }
 
 android {
@@ -14,8 +22,19 @@ android {
         applicationId = "app.scrollback"
         minSdk = 33
         targetSdk = 37
-        versionCode = 5
-        versionName = "0.5.0"
+        versionCode = 6
+        versionName = "0.6.0"
+    }
+
+    signingConfigs {
+        if (releaseKeys != null) {
+            create("release") {
+                storeFile = rootProject.file("keystore/" + releaseKeys.getProperty("storeFile"))
+                storePassword = releaseKeys.getProperty("storePassword")
+                keyAlias = releaseKeys.getProperty("keyAlias")
+                keyPassword = releaseKeys.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
@@ -25,7 +44,19 @@ android {
         }
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (releaseKeys != null) signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    // Three APKs per build: arm64-v8a (modern phones, e.g. the A54), armeabi-v7a (old 32-bit) and universal.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = true
         }
     }
 
