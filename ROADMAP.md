@@ -24,6 +24,7 @@ Symfonium, Finamp, NewPipe and TikTok._
 | 0.10 | Office: PDF viewer (swipe, zoom, jump, search), DOCX/XLSX/PPTX viewers via XmlPullParser (no POI, +145 KB), CSV/TSV editor, Open with |
 | 0.11 | Nearby share: LocalSend v2 (multicast + subnet scan, HTTPS self-signed + fingerprint pinning, PIN, quick save), ported from RSend; CSV in Documents; recent strip opens in Scrollback |
 | 0.12 | Watch: Jellyfin movies, shows → seasons → episodes, collections, Continue watching / Next up, details, search; Media3 direct play with HLS-transcode fallback (PlaybackInfo + device profile); audio/subtitle tracks (embedded, external, burn-in); resume and progress reporting; played/favorite sync |
+| 0.13 | Scrollback Player (libVLC 3.7.7): Open with for video/*, Files and feed integration, automatic fallback from Media3, gestures, aspect/zoom, audio/subtitle tracks, external subs, delays, subtitle styling, speed 0.25–4×, A-B repeat, HW/SW toggle, screen lock, PiP, background audio, resume, folder playlist. +20–24 MB per release APK |
 
 ## Phase A: File-manager add-ons (0.6–0.10) ✅
 
@@ -45,9 +46,9 @@ The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office)
 | Version | What | Notes |
 |---|---|---|
 | 0.12.0 ✅ | **Jellyfin video (Watch)** | Movies, Shows → Seasons → Episodes and Collections, with posters. Continue watching and resume. Played state and progress reported back (`/Sessions/Playing`, `/Progress`, `/Stopped`). Direct play when the device can decode it, otherwise Jellyfin HLS transcoding. Subtitles (embedded, external, burn-in fallback). Lives as a **Watch** entry at the top of Library (its own screen with Home / Movies / Shows / Collections pills), not a sixth tab. Tested against a fake server only (unit tests with MockWebServer and a local stub on the phone); not yet against a real Jellyfin. |
-| 0.13.0 | **Full movie player** | A long-form player, separate from the swipe feed. Gestures: brightness/volume/seek swipes, double-tap seek, pinch zoom. Aspect and crop modes. Subtitles: embedded plus external SRT/ASS, with styling and delay. Audio track and audio delay. HW/SW decoding toggle, speed, A-B repeat, PiP, background audio, resume, lock controls. "Open with Scrollback" for video files. The feed keeps Media3 and hands codecs it can't play to this player. |
+| 0.13.0 ✅ | **Full movie player** | A long-form player, separate from the swipe feed. Gestures: brightness/volume/seek swipes, double-tap seek, pinch zoom. Aspect and crop modes. Subtitles: embedded plus external SRT/ASS, with styling and delay. Audio track and audio delay. HW/SW decoding toggle, speed, A-B repeat, PiP, background audio, resume, lock controls. "Open with Scrollback" for video files. The feed keeps Media3 and hands codecs it can't play to this player. |
 
-**Player backend decision (to confirm while building 0.13):**
+**Player backend decision (confirmed in 0.13: libVLC):**
 
 | Option | Codecs | Size (arm64 only) | License | Fit |
 |---|---|---|---|---|
@@ -56,6 +57,8 @@ The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office)
 | libVLC (org.videolan.android:libvlc-all) | Everything, plus libass and casting | ~+30–35 MB | LGPL-2.1 | Mature Maven artifact and simple API. Slightly heavier, and less control over rendering. |
 
 Plan: use **libVLC** via Maven (LGPL, published AAR, no NDK build on this machine), with an ABI split so arm64-v8a builds carry only arm64 libraries. Media3 stays for the feed and music. LGPL keeps the repository free to pick any license, as long as the shared libraries stay dynamically linked and replaceable. Revisit libmpv if libVLC's subtitle styling or size is a problem.
+
+**Result (0.13.0):** libVLC `libvlc-all` 3.7.7, LGPL-2.1+, dynamically linked and unmodified. Measured release APK sizes: arm64-v8a 10.6 → 33.9 MB, armeabi-v7a 10.6 → 30.3 MB, universal 10.7 → 53.4 MB (x86/x86_64 excluded). **The current roadmap (phases A–A2) is complete**; next is A3 polish.
 
 ## Phase A2.5: Nearby share (0.11) ✅ shipped 0.11.0
 

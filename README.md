@@ -166,6 +166,38 @@ Every feed, the player, sharing and the duplicate finder go through `MediaSource
 (`scan()`, `playback()` → URI + headers, `byteSource()`, `delete()`, `shareUri()`), so remote
 sources can appear in the same feeds later.
 
+## Scrollback Player: full movie player (v0.13)
+
+A long-form player like VLC or MX Player, separate from the swipe feed. It is built on **libVLC**
+(`org.videolan.android:libvlc-all` 3.7.7), so it plays practically any format: HEVC, VP9, AV1, MPEG-2, VC-1,
+AVI/WMV/FLV/TS, DTS/AC3/TrueHD audio, and ASS/SSA subtitles with their own styling (libass).
+
+- **Where it opens**: "Open with → Scrollback Player" for any video file (plus MKV/MP4/HLS MIME types);
+  tapping a video in **Files** (the other videos in that folder become the playlist); **Play** in the Files
+  selection bar (with **Open with** for other apps); **Play in full player** in the feed's info sheet.
+  Local, SAF, Nextcloud and SFTP/SMB files all work (remote bytes go through a local loopback stream).
+- **Automatic fallback**: when the feed's Media3 player can't decode a video (MPEG-2, VC-1, DTS, AVI/WMV…), it
+  opens in Scrollback Player instead, once per video.
+- **Gestures**: swipe on the left for brightness, on the right for volume, sideways to seek; double-tap left or
+  right to skip 10 s; pinch to zoom; tap to show or hide the glass controls.
+- **Picture**: aspect modes (Fit, Stretch, Crop, 16:9, 4:3, Original), zoom, rotation lock, and frame capture to
+  `Pictures/Scrollback`.
+- **Tracks**: audio and subtitle track choice, load an external subtitle file, audio delay and subtitle delay.
+  Subtitles turn on automatically when a file has them (can be switched off).
+- **Subtitle style**: size, colour, outline or background box (ASS/SSA keep their own styling).
+- **Playback**: speed 0.25–4×, A-B repeat, previous/next in the folder playlist, resume where you left off,
+  hardware/software decoding toggle (hardware by default; the top bar shows HW or SW), screen lock,
+  picture-in-picture, and background audio with a media notification.
+- **Why libVLC**: a published Maven AAR (no NDK build), a mature Android API, libass built in, hardware
+  (MediaCodec) and software (FFmpeg) decoding, A-B repeat and delays built in. libmpv was the alternative (similar
+  size, but it would need a custom LGPL-only FFmpeg build). Media3 stays for the feed, Watch and music because it
+  is lighter and starts faster.
+- **License**: libVLC and its bundled libraries are **LGPL-2.1-or-later**. Scrollback uses them unmodified, as
+  dynamically linked shared libraries (`libvlc.so`, `libvlcjni.so`) from the official AAR, so they can be
+  replaced, and Scrollback itself stays free to pick any license. Source: <https://code.videolan.org/videolan/vlc-android>.
+- **Size**: libVLC adds about 20–24 MB per release APK (arm64-v8a 10.6 → 33.9 MB, armeabi-v7a 10.6 → 30.3 MB,
+  universal 10.7 → 53.4 MB). x86/x86_64 libraries are left out; on those devices the player shows a notice.
+
 ## Watch: Jellyfin movies and shows (v0.12)
 
 - **Library → Watch.** It uses the Jellyfin account from **Settings → Servers** (the same sign-in as Jellyfin music; only the access token is stored, encrypted). With several Jellyfin accounts, switch with the ⇄ button.
@@ -308,6 +340,7 @@ The release build uses R8 minify plus resource shrinking. The debug APK is ~75 M
 stripped (e.g. the whole material-icons-extended set). The release APK is ~10 MB (v0.7; about 4 MB of that is
 Bouncy Castle for modern SSH ciphers, ~5.7 MB before): R8 drops every
 icon that isn't used, so the extended icon artifact costs nothing in release builds.
+Since v0.13 the release APKs include libVLC: about 34 MB (arm64-v8a), 30 MB (armeabi-v7a) and 53 MB (universal).
 See [ROADMAP.md](ROADMAP.md) for what's next.
 
 ## License
@@ -315,4 +348,4 @@ See [ROADMAP.md](ROADMAP.md) for what's next.
 **TBD** — to be chosen before the repository goes public. Until then, all rights reserved.
 No third-party code is copied; SnapReel (MIT) was only a design reference. Dependencies keep their own
 licences (AndroidX/Media3/OkHttp/Coil/sshj/smbj/Commons Compress: Apache-2.0; Bouncy Castle: MIT-style; XZ for Java: 0BSD;
-NanoHTTPD: BSD-3-Clause). Nearby share implements the LocalSend v2 protocol (see "Nearby share" for credits).
+NanoHTTPD: BSD-3-Clause; libVLC: LGPL-2.1+, dynamically linked and unmodified). Nearby share implements the LocalSend v2 protocol (see "Nearby share" for credits).
