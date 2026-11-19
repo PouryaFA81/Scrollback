@@ -24,7 +24,7 @@ Symfonium, Finamp, NewPipe and TikTok._
 | 0.11 | Nearby share: LocalSend v2 (multicast + subnet scan, HTTPS self-signed + fingerprint pinning, PIN, quick save), ported from RSend; CSV in Documents; recent strip opens in Scrollback |
 | 0.9 | Convert with VERT: video via vertd (upload → websocket job → download → confirm), other types in the VERT web app; vert.sh default, self-hosted preset |
 
-## Phase A: File-manager add-ons (0.6–0.10, in progress)
+## Phase A: File-manager add-ons (0.6–0.10) ✅
 
 _Release order (Nov 2026): 0.8 Notes+Archives · 0.9 VERT · 0.10 Office · 0.11 Nearby share · 0.12 Jellyfin video · 0.13 movie player._
 
@@ -65,7 +65,8 @@ The certificate is self-signed, the fingerprint is the SHA-256 of the DER cert i
 Scrollback, RSend and official LocalSend can then exchange files.
 - "Nearby share" from file-manager multi-select and from the share action.
 - Receive screen: accept or decline, choose a save location, a quick-save toggle and a progress view.
-- The server runs only while the Nearby screen is open. There is no always-on background server.
+- The server runs only while the Nearby screen is open or a transfer is active. There is no always-on background server.
+- Verified on a Galaxy A54 (Android 17) against the official LocalSend 1.18.2 desktop app: discovery, phone → desktop and desktop → phone transfers.
 - Licensing: the LocalSend app is Apache-2.0. The `localsend/protocol` spec repo has no license file,
   so it is implemented from the public spec for interoperability and no LocalSend code is copied.
   RSend code is Pourya's own. Both are credited in the README.
