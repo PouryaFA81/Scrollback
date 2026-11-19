@@ -186,11 +186,12 @@ fun SettingsScreen(
                     )
                 }
             }
+            item { UpdatesSection() }
             item {
                 SectionCard(title = "About") {
                     SettingsRow(
                         "Scrollback ${BuildConfigInfo.versionName(ctx)}",
-                        subtitle = "Offline and private: nothing leaves this device.\nComing next: file manager · Nextcloud streaming & sync · music player",
+                        subtitle = "Offline-first and private. Nothing leaves this device unless you add a server or tap Check for update.",
                         icon = Icons.Outlined.Info,
                     )
                 }

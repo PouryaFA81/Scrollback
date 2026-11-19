@@ -42,6 +42,8 @@ class AppContainer(context: Context) {
     val sync = app.scrollback.sync.SyncEngine(db, accounts, dav)
     val duplicates = DuplicateRepository(db, library)
     val files = app.scrollback.files.FileRepository(context)
+    /** In-app updates: GitHub Releases, only on demand (Settings → Check for update). */
+    val updater = app.scrollback.update.Updater(context, http, credentials)
 
     private val _session = MutableStateFlow(Session())
     val session: StateFlow<Session> = _session.asStateFlow()

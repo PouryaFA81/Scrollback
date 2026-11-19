@@ -166,33 +166,38 @@ Every feed, the player, sharing and the duplicate finder go through `MediaSource
 (`scan()`, `playback()` → URI + headers, `byteSource()`, `delete()`, `shareUri()`), so remote
 sources can appear in the same feeds later.
 
-## Roadmap
+## Updates and releases (v0.6)
 
-All four phases plus the v0.5 navigation rework are done. Next ideas: Jellyfin video in the feeds,
-Subsonic scrobbling, lyrics, a Play-compliant flavor without `MANAGE_EXTERNAL_STORAGE`, release signing.
-
-
-1. **Phase 1 — v0.1:** local offline viewer as above. ✅
-2. **Phase 2 — built-in file manager:** One UI "My Files"-style browser (copy/move/rename/delete,
-   folders, multi-select, storage overview) over SAF, in `files/`. ✅ v0.2.0
-3. **Phase 3 — Nextcloud:** `WebDavMediaSource` (PROPFIND scan) that **streams** remote videos in the
-   same feeds without downloading first (Media3 `DefaultHttpDataSource` with auth headers), plus
-   sync of likes/notes/tags/playlists and optional offline copies. Login Flow v2 app password,
-   stored encrypted. ✅ v0.3.0
-4. **Phase 4 — music player (✅ v0.4.0, see above):** Media3 `MediaSessionService` for background playback and lock-screen
-   controls, reusing folders, likes, playlists and tags (the index already has an `audio` kind);
-   optional tab toggled in Settings; Nextcloud audio streaming later.
+- **Settings → Updates → Check for update** is the only time the app contacts GitHub. There are no background checks.
+  It reads the latest GitHub Release of `PouryaFA81/Scrollback` and picks the APK for this build
+  and CPU (`Build.SUPPORTED_ABIS`: arm64-v8a, then armeabi-v7a, then universal). Before installing,
+  it checks that the package name and signing certificate match the installed app. Then it installs
+  through `PackageInstaller` (`REQUEST_INSTALL_PACKAGES`, and Android asks you to confirm).
+- While the repo is private, the anonymous API returns 404. You can save a fine-grained token
+  (read-only Contents) under **GitHub token**. It is AES-GCM encrypted with an Android Keystore key and only
+  sent to api.github.com. Once the repo is public, no token is needed.
+- **Signing.** Release APKs (`app.scrollback`) are signed with a dedicated release key in
+  `keystore/` (gitignored: `release.jks` + `keystore.properties`; never committed or printed). Debug APKs
+  (`app.scrollback.debug`) use this machine's debug key. The two install side by side, and each
+  updates only from its own kind of asset. **Back up `keystore/`**: if it is lost, future release
+  updates can't install over existing release installs.
+- **Each release** attaches `scrollback-<ver>-arm64-v8a-release.apk`, `-armeabi-v7a-release.apk`,
+  `-universal-release.apk`, `-universal-debug.apk` and `SHA256SUMS`.
 
 ## Build
 
 ```bash
-./scripts/build-apk.sh            # build + dist/scrollback-debug.apk + dist/archive/ backup
-./scripts/build-apk.sh --install  # same, then adb install -r
+./scripts/build-apk.sh              # debug + signed release splits → dist/ and dist/archive/ (timestamped)
+./scripts/build-apk.sh --install    # same, then adb install (debug + arm64 release)
+./scripts/build-apk.sh --no-release # debug only (fast)
+./scripts/publish-release.sh v0.6.0 # GitHub Release for a pushed tag, with all APKs attached
 ./gradlew testDebugUnitTest lint
 ```
 
-Install on a phone: enable USB debugging and run `adb install -r dist/scrollback-debug.apk`, or copy
-the APK to the phone and open it (allow "install unknown apps" for your file manager).
+The release build uses R8 minify plus resource shrinking. The debug APK is ~75 MB because nothing is
+stripped (e.g. the whole material-icons-extended set). The release APK is ~6 MB: R8 drops every
+icon that isn't used, so the extended icon artifact costs nothing in release builds.
+See [ROADMAP.md](ROADMAP.md) for what's next.
 
 ## License
 
