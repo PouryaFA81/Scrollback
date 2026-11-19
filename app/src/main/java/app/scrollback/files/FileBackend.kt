@@ -126,3 +126,45 @@ class SafFileBackend(private val resolver: ContentResolver) : FileBackend {
         }.getOrNull()
     }
 }
+
+/** SFTP/SMB through [app.scrollback.remote.fs.RemoteStorage]. Errors surface as exceptions to the repository. */
+class RemoteFileBackend(private val storage: app.scrollback.remote.fs.RemoteStorage) : FileBackend {
+    private fun acc(n: FileNode) = n.treeUri ?: throw java.io.IOException("No account")
+    private fun child(parent: FileNode, name: String) = app.scrollback.remote.fs.RemotePaths.join(parent.id, name)
+
+    override fun list(dir: FileNode): List<FileNode> = storage.use(acc(dir)) { fs ->
+        fs.list(dir.id).filter { !it.name.startsWith(".") }.map { FileNode.remote(acc(dir), it) }
+    }
+
+    override fun createDir(parent: FileNode, name: String): FileNode? = storage.use(acc(parent)) { fs ->
+        val p = child(parent, name)
+        fs.mkdir(p)
+        FileNode.remote(acc(parent), app.scrollback.remote.fs.RemoteEntry(p, name, true, 0, System.currentTimeMillis()))
+    }
+
+    override fun createFile(parent: FileNode, name: String, mime: String): Pair<FileNode, OutputStream>? = storage.use(acc(parent)) { fs ->
+        val p = child(parent, name)
+        FileNode.remote(acc(parent), app.scrollback.remote.fs.RemoteEntry(p, name, false, 0, System.currentTimeMillis())) to fs.openWrite(p)
+    }
+
+    override fun rename(node: FileNode, newName: String): FileNode? = storage.use(acc(node)) { fs ->
+        val to = app.scrollback.remote.fs.RemotePaths.join(app.scrollback.remote.fs.RemotePaths.parent(node.id), newName)
+        fs.rename(node.id, to)
+        node.copy(id = to, name = newName, path = to)
+    }
+
+    override fun delete(node: FileNode): Boolean = runCatching { storage.use(acc(node)) { it.delete(node.id, node.isDir) }; true }.getOrDefault(false)
+
+    override fun openInput(node: FileNode): InputStream? = storage.use(acc(node)) { it.openRead(node.id) }
+
+    override fun move(node: FileNode, fromParent: FileNode, toDir: FileNode): FileNode? {
+        if (node.treeUri != toDir.treeUri) return null
+        return runCatching {
+            storage.use(acc(node)) { fs ->
+                val to = child(toDir, node.name)
+                fs.rename(node.id, to)
+                node.copy(id = to, path = to)
+            }
+        }.getOrNull()
+    }
+}

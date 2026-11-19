@@ -157,6 +157,23 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
     val grid = rememberLazyGridState()
     val collapsed by grid.collapsedState()
     LaunchedEffect(dir.key) { selection = emptySet() }
+    LaunchedEffect(Unit) { files.errors.collect { Toast.makeText(ctx, it, Toast.LENGTH_LONG).show() } }
+
+    /** Remote files are copied to the cache first so other apps can open or share them. */
+    fun withLocal(nodes: List<FileNode>, then: (List<FileNode>) -> Unit) {
+        if (nodes.none { it.isRemote }) { then(nodes); return }
+        scope.launch {
+            val out = mutableListOf<FileNode>()
+            for (n in nodes) {
+                if (!n.isRemote) { out += n; continue }
+                busy = "Downloading ${n.name}…"
+                val f = files.fetchToCache(n) { p -> busy = "Downloading ${n.name}… ${(p * 100).toInt()}%" }
+                if (f != null) out += FileNode.raw(f).copy(mime = n.mime)
+            }
+            busy = null
+            if (out.isNotEmpty()) then(out)
+        }
+    }
 
     BackHandler(enabled = selection.isNotEmpty() || searching || stack.size > 1) {
         when {
@@ -171,7 +188,7 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
             selection = if (n.key in selection) selection - n.key else selection + n.key
             return
         }
-        if (n.isDir) { searching = false; query = ""; stack = stack + n } else openWith(ctx, n)
+        if (n.isDir) { searching = false; query = ""; stack = stack + n } else withLocal(listOf(n)) { openWith(ctx, it.first()) }
     }
     fun longPress(n: FileNode) { haptics.tick(); selection = selection + n.key }
     fun done(msg: String) { Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show(); refresh++; selection = emptySet() }
@@ -229,13 +246,18 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
                             },
                             BarAction("Rename", Icons.Outlined.DriveFileRenameOutline, enabled = single != null && dir.canWrite) { renaming = single },
                             BarAction("Delete", Icons.Outlined.Delete, enabled = dir.canWrite) { deleting = selectedNodes },
-                            BarAction("Share", Icons.Outlined.Share) { shareNodes(ctx, selectedNodes) },
+                            BarAction("Share", Icons.Outlined.Share) { val sel = selectedNodes; withLocal(sel.filter { !it.isDir }) { shareNodes(ctx, it) } },
                             BarAction("Info", Icons.Outlined.Info, enabled = single != null) { info = single },
                             BarAction("Add source", Icons.Outlined.AddToPhotos, enabled = single?.isDir == true) {
                                 val n = single!!
                                 container.appScope.launch {
                                     when (n.kind) {
                                         NodeKind.RAW -> container.library.addFolderSource(SourceType.FILE, n.id, n.name)
+                                        NodeKind.REMOTE -> {
+                                            val acc = container.accounts.get(n.treeUri)
+                                            val t = if (acc?.type == app.scrollback.accounts.AccountType.SMB) SourceType.SMB else SourceType.SFTP
+                                            container.library.addRemoteSource(t, n.id, n.name, n.treeUri.orEmpty())
+                                        }
                                         else -> container.library.addFolderSource(SourceType.SAF_TREE, n.uri.toString(), n.name)
                                     }
                                 }

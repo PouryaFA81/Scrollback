@@ -113,7 +113,7 @@ fun SettingsScreen(
                     RowDivider()
                     SettingsRow(
                         "Servers",
-                        subtitle = if (accounts.isEmpty()) "Nextcloud streaming & sync — optional" else accounts.joinToString { it.displayName },
+                        subtitle = accounts.filterNot { it.type.isNetworkStorage }.let { a -> if (a.isEmpty()) "Nextcloud, Subsonic and Jellyfin, all optional" else a.joinToString { it.displayName } },
                         icon = Icons.Outlined.Cloud,
                         onClick = onOpenServers,
                     )

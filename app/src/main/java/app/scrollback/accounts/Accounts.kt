@@ -20,7 +20,11 @@ import javax.crypto.spec.GCMParameterSpec
 enum class AccountType(val id: String, val label: String) {
     NEXTCLOUD("nextcloud", "Nextcloud"),
     SUBSONIC("subsonic", "Subsonic / OpenSubsonic"),
-    JELLYFIN("jellyfin", "Jellyfin");
+    JELLYFIN("jellyfin", "Jellyfin"),
+    SFTP("sftp", "SFTP"),
+    SMB("smb", "SMB (Windows / Samba share)");
+
+    val isNetworkStorage: Boolean get() = this == SFTP || this == SMB
 
     companion object {
         fun from(id: String) = entries.firstOrNull { it.id == id } ?: NEXTCLOUD
@@ -45,6 +49,8 @@ data class ServerAccount(
     val syncEnabled: Boolean = false,
     val lastSyncAt: Long = 0,
     val lastSyncError: String? = null,
+    /** SFTP: pinned host key fingerprint (`SHA256:…`), set when the user trusts it on first connect. */
+    val hostKey: String? = null,
 ) {
     val title: String get() = "$displayName · ${baseUrl.removePrefix("https://").removePrefix("http://")}"
 
@@ -52,6 +58,7 @@ data class ServerAccount(
         .put("id", id).put("type", type.id).put("baseUrl", baseUrl).put("loginName", loginName)
         .put("userId", userId).put("displayName", displayName).put("syncEnabled", syncEnabled)
         .put("lastSyncAt", lastSyncAt).put("lastSyncError", lastSyncError ?: JSONObject.NULL)
+        .put("hostKey", hostKey ?: JSONObject.NULL)
 
     companion object {
         fun fromJson(o: JSONObject) = ServerAccount(
@@ -64,6 +71,7 @@ data class ServerAccount(
             syncEnabled = o.optBoolean("syncEnabled", false),
             lastSyncAt = o.optLong("lastSyncAt", 0),
             lastSyncError = if (o.isNull("lastSyncError")) null else o.optString("lastSyncError"),
+            hostKey = if (o.isNull("hostKey")) null else o.optString("hostKey").ifBlank { null },
         )
 
         /** "cloud.example.com/" -> "https://cloud.example.com". Plain http only when typed explicitly. */

@@ -18,7 +18,13 @@ enum class SourceType(val id: String) {
     SUBSONIC("subsonic"),
 
     /** A Jellyfin server's music library. */
-    JELLYFIN("jellyfin");
+    JELLYFIN("jellyfin"),
+
+    /** A folder on an SFTP server (v0.7), streamed via `rfs://` URIs. */
+    SFTP("sftp"),
+
+    /** A folder on an SMB2/3 share (v0.7), streamed via `rfs://` URIs. */
+    SMB("smb");
 
     companion object {
         fun from(id: String): SourceType = entries.firstOrNull { it.id == id } ?: SAF_TREE

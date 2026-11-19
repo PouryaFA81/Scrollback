@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.MusicNote
@@ -45,6 +46,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -108,12 +110,14 @@ private fun shade(c: Category) = when (c) {
 fun FilesHomeScreen(
     onBrowse: (FileNode) -> Unit,
     onCategory: (Category) -> Unit,
+    onOpenTool: (String) -> Unit = {},
 ) {
     val container = LocalContainer.current
     val files = container.files
     val ctx = LocalContext.current
     val list = rememberLazyListState()
     val collapsed by list.collapsedState()
+    val remotes = container.accounts.accounts.collectAsStateWithLifecycle().value.filter { it.type.isNetworkStorage }
     var resumeTick by remember { mutableIntStateOf(0) }
     val owner = LocalLifecycleOwner.current
     DisposableEffect(owner) {
@@ -211,6 +215,14 @@ fun FilesHomeScreen(
                             onClick = { onBrowse(t) },
                         )
                     }
+                    remotes.forEach { a ->
+                        ListRow(
+                            title = a.displayName,
+                            subtitle = "${a.type.id.uppercase()} · ${container.remoteStorage.endpoint(a)?.label ?: a.baseUrl}",
+                            leading = { Icon(Icons.Outlined.Dns, null, tint = SbColors.TextPrimary) },
+                            onClick = { remoteRoot(a)?.let(onBrowse) },
+                        )
+                    }
                     ListRow(
                         title = "Add folder access",
                         subtitle = "Pick a folder to browse and manage (works without extra permissions)",
@@ -219,6 +231,7 @@ fun FilesHomeScreen(
                     )
                 }
             }
+            item { ToolsCard(onOpenTool) }
             if (!allFiles) {
                 item {
                     SectionCard(title = "Optional") {
@@ -285,5 +298,30 @@ private fun StorageCard(s: StorageSummary) {
                 }
             }
         }
+    }
+}
+
+/** Root folder node for an SFTP/SMB account. */
+fun remoteRoot(a: app.scrollback.accounts.ServerAccount): FileNode? {
+    val ep = app.scrollback.remote.fs.RemoteEndpoint.parse(a.type, a.baseUrl) ?: return null
+    return FileNode(
+        kind = app.scrollback.files.NodeKind.REMOTE, id = ep.root, name = a.displayName, isDir = true,
+        mime = android.provider.DocumentsContract.Document.MIME_TYPE_DIR, treeUri = a.id, path = ep.root,
+    )
+}
+
+/**
+ * Files → Tools: the file-manager add-ons live here, behind one card, so the tab bar stays at five
+ * and the Files home stays a file manager first.
+ */
+@Composable
+private fun ToolsCard(onOpenTool: (String) -> Unit) {
+    SectionCard(title = "Tools") {
+        ListRow(
+            title = "Network storage",
+            subtitle = "SFTP and SMB servers: browse, copy, stream into your feeds",
+            leading = { Icon(Icons.Outlined.Dns, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("remotes") },
+        )
     }
 }

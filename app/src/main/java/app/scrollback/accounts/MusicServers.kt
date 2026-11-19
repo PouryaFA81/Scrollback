@@ -76,6 +76,7 @@ class MusicServers(
                 a
             }
             AccountType.NEXTCLOUD -> error("Use Login Flow v2 for Nextcloud")
+            AccountType.SFTP, AccountType.SMB -> error("Use Files → Network storage")
         }
         addSource(account.id)
         account

@@ -14,6 +14,12 @@ class ScrollbackApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
+        // sshj needs the full BouncyCastle provider; Android ships a stripped one under the same name.
+        // Appended last so platform providers (AndroidKeyStore, Conscrypt) keep priority.
+        runCatching {
+            java.security.Security.removeProvider("BC")
+            java.security.Security.addProvider(org.bouncycastle.jce.provider.BouncyCastleProvider())
+        }
         container = AppContainer(this)
         container.appScope.launch { container.library.rescanAll(); container.syncSoon(force = true) }
     }
@@ -23,6 +29,7 @@ class ScrollbackApp : Application(), SingletonImageLoader.Factory {
             .components {
                 add(VideoFrameDecoder.Factory())
                 add(app.scrollback.player.AudioArt.Factory())
+                add(app.scrollback.remote.fs.RemoteFsFetcher(container.remoteStorage))
                 add(coil3.network.okhttp.OkHttpNetworkFetcherFactory(callFactory = { container.http }))
             }
             .crossfade(true)

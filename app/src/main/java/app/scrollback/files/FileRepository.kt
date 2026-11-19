@@ -31,16 +31,25 @@ data class Clipboard(val nodes: List<FileNode>, val fromParent: FileNode, val mo
 data class OpResult(val ok: Int, val failed: Int)
 
 /** File manager data: roots, browsing, MediaStore categories, storage summary and file operations. */
-class FileRepository(private val context: Context) {
+class FileRepository(private val context: Context, private val storage: app.scrollback.remote.fs.RemoteStorage) {
     private val resolver = context.contentResolver
     val raw = RawFileBackend()
     val saf = SafFileBackend(resolver)
+    val remote = RemoteFileBackend(storage)
+
+    /** Last listing error (e.g. a server that can't be reached), shown by the browser as a message. */
+    private val _errors = kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 4)
+    val errors: kotlinx.coroutines.flow.SharedFlow<String> = _errors
 
     private val _clipboard = MutableStateFlow<Clipboard?>(null)
     val clipboard: StateFlow<Clipboard?> = _clipboard.asStateFlow()
     fun setClipboard(c: Clipboard?) { _clipboard.value = c }
 
-    fun backend(node: FileNode): FileBackend = if (node.kind == NodeKind.RAW) raw else saf
+    fun backend(node: FileNode): FileBackend = when (node.kind) {
+        NodeKind.RAW -> raw
+        NodeKind.REMOTE -> remote
+        else -> saf
+    }
 
     fun hasAllFilesAccess(): Boolean = Environment.isExternalStorageManager()
 
@@ -62,7 +71,50 @@ class FileRepository(private val context: Context) {
             )
         }
 
-    suspend fun list(dir: FileNode): List<FileNode> = withContext(Dispatchers.IO) { backend(dir).list(dir) }
+    suspend fun list(dir: FileNode): List<FileNode> = withContext(Dispatchers.IO) {
+        try {
+            backend(dir).list(dir)
+        } catch (e: Exception) {
+            _errors.tryEmit(describe(e))
+            emptyList()
+        }
+    }
+
+    /** Copies a (remote) file into the app cache so other apps can open or share it. */
+    suspend fun fetchToCache(node: FileNode, onProgress: (Float) -> Unit = {}): File? = withContext(Dispatchers.IO) {
+        if (node.kind != NodeKind.REMOTE) return@withContext null
+        val dir = File(context.cacheDir, "remote/${node.treeUri}/${node.id.hashCode().toUInt()}").apply { mkdirs() }
+        val out = File(dir, node.name)
+        if (out.isFile && out.length() == node.size && out.lastModified() >= node.modified) return@withContext out
+        try {
+            remote.openInput(node)?.use { input ->
+                out.outputStream().use { o ->
+                    val buf = ByteArray(256 * 1024)
+                    var done = 0L
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        o.write(buf, 0, n)
+                        done += n
+                        if (node.size > 0) onProgress(done.toFloat() / node.size)
+                    }
+                }
+            } ?: return@withContext null
+            out
+        } catch (e: Exception) {
+            out.delete()
+            _errors.tryEmit(describe(e))
+            null
+        }
+    }
+
+    private fun describe(e: Exception): String = when (e) {
+        is app.scrollback.remote.fs.HostKeyMismatchException -> "The server's host key changed. Remove and re-add the server only if you expected this."
+        is app.scrollback.remote.fs.UnknownHostKeyException -> "The server's host key isn't trusted yet."
+        is java.net.UnknownHostException -> "Server not found"
+        is java.net.ConnectException, is java.net.SocketTimeoutException -> "Couldn't connect to the server"
+        else -> e.message?.take(140) ?: e.javaClass.simpleName
+    }
 
     suspend fun createDir(parent: FileNode, name: String): FileNode? = withContext(Dispatchers.IO) {
         val b = backend(parent)

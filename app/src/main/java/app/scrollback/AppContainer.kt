@@ -36,12 +36,14 @@ class AppContainer(context: Context) {
     val dav = app.scrollback.remote.webdav.WebDavClient(http)
     val servers = app.scrollback.accounts.ServerManager(accounts, auth, http, appScope)
     val sources = MediaSourceRegistry(context, accounts, dav)
+    /** v0.7: SFTP + SMB connections (one live connection per account, opened on demand). */
+    val remoteStorage = app.scrollback.remote.fs.RemoteStorage(accounts)
     val library = LibraryRepository(context, db, sources, appScope)
-    val playback = app.scrollback.player.Playback(context, http, auth)
+    val playback = app.scrollback.player.Playback(context, http, auth, remoteStorage)
     val downloader = app.scrollback.remote.Downloader(context, http, auth)
     val sync = app.scrollback.sync.SyncEngine(db, accounts, dav)
     val duplicates = DuplicateRepository(db, library)
-    val files = app.scrollback.files.FileRepository(context)
+    val files = app.scrollback.files.FileRepository(context, remoteStorage)
     /** In-app updates: GitHub Releases, only on demand (Settings → Check for update). */
     val updater = app.scrollback.update.Updater(context, http, credentials)
 
@@ -52,6 +54,13 @@ class AppContainer(context: Context) {
     val hasPin: StateFlow<Boolean> = settings.settings.map { it.hasPin }.stateIn(appScope, SharingStarted.Eagerly, false)
 
     init {
+        for (t in listOf(app.scrollback.data.source.SourceType.SFTP, app.scrollback.data.source.SourceType.SMB)) {
+            sources.factories[t] = { e ->
+                e.accountId?.let { acc ->
+                    app.scrollback.remote.fs.RemoteFsMediaSource(e.id, t, acc, e.uri, remoteStorage, sources.includeAudio)
+                }
+            }
+        }
         appScope.launch {
             hasPin.collect { has -> if (!has) _session.update { it.copy(hiddenRevealed = true) } }
         }

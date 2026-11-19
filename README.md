@@ -166,6 +166,26 @@ Every feed, the player, sharing and the duplicate finder go through `MediaSource
 (`scan()`, `playback()` → URI + headers, `byteSource()`, `delete()`, `shareUri()`), so remote
 sources can appear in the same feeds later.
 
+## Network storage: SFTP and SMB (v0.7)
+
+- **Files → Tools → Network storage → Add server.** Pick **SFTP** (host, port 22, start folder, user,
+  password or private key via **Load key file…** / paste) or **SMB** (host, port 445, share, folder,
+  `DOMAIN\user` or empty for guest, password). **Connect & save** tests the connection before saving.
+- **SFTP host keys work on trust-on-first-use.** The first connection shows the server's `SHA256:` fingerprint
+  for you to confirm. After that it is pinned, and Scrollback refuses to connect if it changes (which could mean
+  a man-in-the-middle). Compare the fingerprint with `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`.
+- Saved servers appear under **Files → Locations**. You can browse, create folders, rename, delete and share.
+  Opening or sharing a file downloads it to the app cache first.
+  **Add to feeds** (or **Add source** on a folder) streams videos and pictures straight from the server with
+  seeking, through the shared 512 MB media cache.
+- Passwords and keys are stored AES-GCM encrypted (Android Keystore), like the Nextcloud and music accounts.
+- Libraries: [sshj](https://github.com/hierynomus/sshj) (Apache-2.0), [smbj](https://github.com/hierynomus/smbj)
+  (Apache-2.0) and [Bouncy Castle](https://www.bouncycastle.org/) (MIT-style Bouncy Castle licence) for
+  modern SSH ciphers (ed25519, chacha20).
+- Status: SFTP is verified end to end against OpenSSH (list, seek-read, write, rename, delete, host-key
+  pinning and mismatch). SMB is verified for list and stat against impacket. Reads still need confirming on a real
+  Samba or Windows share. `SB_SFTP_TEST` / `SB_SMB_TEST` enable the integration tests (see `app/src/test`).
+
 ## Updates and releases (v0.6)
 
 - **Settings → Updates → Check for update** is the only time the app contacts GitHub. There are no background checks.
@@ -195,11 +215,12 @@ sources can appear in the same feeds later.
 ```
 
 The release build uses R8 minify plus resource shrinking. The debug APK is ~75 MB because nothing is
-stripped (e.g. the whole material-icons-extended set). The release APK is ~6 MB: R8 drops every
+stripped (e.g. the whole material-icons-extended set). The release APK is ~10 MB (v0.7; about 4 MB of that is
+Bouncy Castle for modern SSH ciphers, ~5.7 MB before): R8 drops every
 icon that isn't used, so the extended icon artifact costs nothing in release builds.
 See [ROADMAP.md](ROADMAP.md) for what's next.
 
 ## License
 
 **TBD** — to be chosen before the repository goes public. Until then, all rights reserved.
-No third-party code is copied; SnapReel (MIT) was only a design reference.
+No third-party code is copied; SnapReel (MIT) was only a design reference. Dependencies keep their own\nlicences (AndroidX/Media3/OkHttp/Coil/sshj/smbj: Apache-2.0; Bouncy Castle: MIT-style).

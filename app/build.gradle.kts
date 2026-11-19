@@ -22,8 +22,8 @@ android {
         applicationId = "app.scrollback"
         minSdk = 33
         targetSdk = 37
-        versionCode = 6
-        versionName = "0.6.0"
+        versionCode = 7
+        versionName = "0.7.0"
     }
 
     signingConfigs {
@@ -63,6 +63,11 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources.pickFirsts += setOf("META-INF/LICENSE.md", "META-INF/NOTICE.md", "META-INF/LICENSE", "META-INF/NOTICE")
+        resources.excludes += setOf("META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/BCKEY.*", "META-INF/BC*.SF", "META-INF/BC*.DSA", "META-INF/INDEX.LIST", "META-INF/DEPENDENCIES")
     }
 
     buildFeatures {
@@ -108,6 +113,11 @@ dependencies {
     implementation(libs.haze)
     implementation(libs.haze.blur)
     implementation(libs.coroutines.android)
+    // v0.7: SFTP + SMB2/3 network storage
+    implementation(libs.sshj)
+    implementation(libs.smbj)
+    implementation(libs.bouncycastle.prov)
+    implementation(libs.bouncycastle.pkix)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)

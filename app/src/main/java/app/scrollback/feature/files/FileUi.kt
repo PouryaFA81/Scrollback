@@ -75,7 +75,9 @@ fun FileThumb(node: FileNode, modifier: Modifier, iconSize: androidx.compose.ui.
     val ctx = LocalContext.current
     val cat = Mime.category(node.mime)
     Box(modifier.background(SbColors.SurfaceHigh), contentAlignment = Alignment.Center) {
-        if (!node.isDir && (cat == "image" || cat == "video")) {
+        // Remote (SFTP/SMB) thumbnails: pictures only, under 25 MB, so browsing stays light on the network.
+        val thumbable = if (node.isRemote) cat == "image" && node.size in 1..25_000_000 else cat == "image" || cat == "video"
+        if (!node.isDir && thumbable) {
             val req = remember(node.key) {
                 ImageRequest.Builder(ctx).data(node.uri).apply { if (cat == "video") videoFrameMillis(1000) }.build()
             }
@@ -182,6 +184,7 @@ fun FileInfoSheet(node: FileNode, onDismiss: () -> Unit) {
             app.scrollback.files.NodeKind.RAW -> "Direct (all-files access)"
             app.scrollback.files.NodeKind.SAF -> "Granted folder (SAF)"
             app.scrollback.files.NodeKind.MEDIA -> "Media library"
+            app.scrollback.files.NodeKind.REMOTE -> "Network server (SFTP/SMB)"
         })
     }
 }

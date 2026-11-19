@@ -11,6 +11,7 @@ object FileRoute {
     fun encode(node: FileNode): String = Uri.encode(
         when (node.kind) {
             NodeKind.RAW -> "raw|${node.id}"
+            NodeKind.REMOTE -> "rem|${node.treeUri}|${node.id}|${node.name}"
             else -> "saf|${node.treeUri}|${node.id}|${node.name}"
         }
     )
@@ -24,6 +25,10 @@ object FileRoute {
             "saf" -> if (parts.size >= 4) FileNode(
                 kind = NodeKind.SAF, id = parts[2], name = parts.drop(3).joinToString("|"), isDir = true,
                 mime = DocumentsContract.Document.MIME_TYPE_DIR, treeUri = parts[1],
+            ) else null
+            "rem" -> if (parts.size >= 4) FileNode(
+                kind = NodeKind.REMOTE, id = parts[2], name = parts.drop(3).joinToString("|"), isDir = true,
+                mime = DocumentsContract.Document.MIME_TYPE_DIR, treeUri = parts[1], path = parts[2],
             ) else null
             else -> null
         }

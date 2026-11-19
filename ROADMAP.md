@@ -17,6 +17,8 @@ Symfonium, Finamp, NewPipe and TikTok._
 | 0.3 | Nextcloud: WebDAV streaming, downloads, library sync |
 | 0.4 | Music player, Subsonic/OpenSubsonic and Jellyfin, background playback |
 | 0.5 | IA rework: five tabs, Settings behind the gear, One UI glass chrome |
+| 0.6 | In-app updates (on tap only), dedicated release key, R8 + ABI splits (~5.7 MB per APK) |
+| 0.7 | SFTP + SMB network storage under Files → Tools, TOFU host-key pinning, streaming into feeds |
 
 ## Phase A: File-manager add-ons (0.6–0.11, in progress)
 
@@ -24,8 +26,8 @@ The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office)
 
 | Version | Add-on | Notes |
 |---|---|---|
-| 0.6.0 | **In-app updates + signed releases** | Runs only when you tap "Check for update". Reads GitHub Releases, verifies the package name and signing key, installs with PackageInstaller. Optional encrypted token while the repo is private. |
-| 0.7.0 | **SFTP + SMB** | sshj (password or key, host key pinned on first use) and smbj (SMB2/3). Browse, copy both ways, stream into the feeds through the media-source layer. Credentials stay encrypted in the Keystore. |
+| 0.6.0 ✅ | **In-app updates + signed releases** | Runs only when you tap "Check for update". Reads GitHub Releases, verifies the package name and signing key, installs with PackageInstaller. Optional encrypted token while the repo is private. |
+| 0.7.0 ✅ | **SFTP + SMB** | sshj (password or key, host key pinned on first use) and smbj (SMB2/3). Browse, copy both ways, stream into the feeds through the media-source layer. Credentials stay encrypted in the Keystore. SMB reads still need confirming on real Samba/Windows. |
 | 0.8.0 | **Notes** | Markdown/plain-text editor with preview for .md and .txt. Obsidian-friendly: wikilinks, front matter left untouched, autosave. |
 | 0.9.0 | **Archives** | Zip create/extract; tar, tar.gz and 7z extract (Commons Compress plus XZ). Guards against zip-slip and zip bombs. |
 | 0.10.0 | **Convert (VERT)** | Video goes through the vertd API (upload, then websocket job, then download). Images, audio and docs open in the VERT web app, which converts them client-side. Default https://vert.sh, with a preset for vert.example.com. |
@@ -48,7 +50,21 @@ The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office)
 
 Plan: use **libVLC** via Maven (LGPL, published AAR, no NDK build on this machine), with an ABI split so arm64-v8a builds carry only arm64 libraries. Media3 stays for the feed and music. LGPL keeps the repository free to pick any license, as long as the shared libraries stay dynamically linked and replaceable. Revisit libmpv if libVLC's subtitle styling or size is a problem.
 
-## Phase A3: Polish (0.14)
+## Phase A2.5: Nearby share (0.14)
+
+**LocalSend-compatible sharing**, based on Pourya's RSend (`PouryaFA81/rsend`, whose Android core is
+the pure-JDK `lsend` package). It follows LocalSend protocol v2: multicast discovery on
+224.0.0.167:53317, plus HTTPS `/api/localsend/v2/register`, `prepare-upload`, `upload` and `cancel`.
+The certificate is self-signed, the fingerprint is the SHA-256 of the DER cert in lowercase hex, and a PIN is optional.
+Scrollback, RSend and official LocalSend can then exchange files.
+- "Nearby share" from file-manager multi-select and from the share action.
+- Receive screen: accept or decline, choose a save location, a quick-save toggle and a progress view.
+- The server runs only while the Nearby screen is open. There is no always-on background server.
+- Licensing: the LocalSend app is Apache-2.0. The `localsend/protocol` spec repo has no license file,
+  so it is implemented from the public spec for interoperability and no LocalSend code is copied.
+  RSend code is Pourya's own. Both are credited in the README.
+
+## Phase A3: Polish (0.15)
 
 1. **Swipe between sub-tabs.** A HorizontalPager synced with the segmented/chip tabs: Library
    (Liked, Playlists, History, Search…), the Feed's Random|Saved, Music (Songs, Artists, Albums, Folders) and

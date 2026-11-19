@@ -76,7 +76,8 @@ import kotlinx.coroutines.withContext
 @Composable
 fun ServersScreen(onBack: () -> Unit, onBrowseNextcloud: (String) -> Unit) {
     val container = LocalContainer.current
-    val accounts by container.accounts.accounts.collectAsStateWithLifecycle()
+    // SFTP/SMB live in Files → Tools → Network storage, not here.
+    val accounts = container.accounts.accounts.collectAsStateWithLifecycle().value.filterNot { it.type.isNetworkStorage }
     val list = rememberLazyListState()
     val collapsed by list.collapsedState()
     var adding by remember { mutableStateOf<AccountType?>(null) }
@@ -139,13 +140,14 @@ fun ServersScreen(onBack: () -> Unit, onBrowseNextcloud: (String) -> Unit) {
     if (choosing) {
         GlassSheet({ choosing = false }) { close ->
             SheetTitle("Add server")
-            AccountType.entries.filter { it == AccountType.NEXTCLOUD || container.musicServersReady }.forEach { t ->
+            AccountType.entries.filter { !it.isNetworkStorage && (it == AccountType.NEXTCLOUD || container.musicServersReady) }.forEach { t ->
                 SettingsRow(
                     t.label,
                     subtitle = when (t) {
                         AccountType.NEXTCLOUD -> "Videos, pictures and music over WebDAV + library sync"
                         AccountType.SUBSONIC -> "Navidrome, Nextcloud Music, Airsonic, Gonic…"
                         AccountType.JELLYFIN -> "Music libraries (video later)"
+                        else -> "Files → Tools → Network storage"
                     },
                     icon = if (t == AccountType.NEXTCLOUD) Icons.Outlined.Cloud else Icons.Outlined.LibraryMusic,
                     onClick = { adding = t; close() },

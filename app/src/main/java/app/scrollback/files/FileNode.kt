@@ -6,14 +6,18 @@ import android.provider.DocumentsContract
 import androidx.core.content.FileProvider
 import java.io.File
 
-/** Where a node lives. RAW = java.io.File (all-files access), SAF = Storage Access Framework, MEDIA = MediaStore row. */
-enum class NodeKind { RAW, SAF, MEDIA }
+/**
+ * Where a node lives. RAW = java.io.File (all-files access), SAF = Storage Access Framework,
+ * MEDIA = MediaStore row, REMOTE = SFTP/SMB server (v0.7).
+ */
+enum class NodeKind { RAW, SAF, MEDIA, REMOTE }
 
 /**
  * One file or folder in the file manager.
  * - RAW: [id] is an absolute path.
  * - SAF: [id] is a document id inside [treeUri].
  * - MEDIA: [id] is a MediaStore content URI; [path] is its relative path for display.
+ * - REMOTE: [id] is the absolute server path; [treeUri] holds the account id.
  */
 data class FileNode(
     val kind: NodeKind,
@@ -32,6 +36,7 @@ data class FileNode(
             NodeKind.RAW -> Uri.fromFile(File(id))
             NodeKind.SAF -> DocumentsContract.buildDocumentUriUsingTree(Uri.parse(treeUri), id)
             NodeKind.MEDIA -> Uri.parse(id)
+            NodeKind.REMOTE -> Uri.parse(app.scrollback.remote.fs.RemotePaths.uri(treeUri.orEmpty(), id))
         }
 
     val key: String get() = "${kind.name}:${treeUri ?: ""}:$id"
@@ -44,7 +49,21 @@ data class FileNode(
         else -> uri
     }
 
+    val isRemote: Boolean get() = kind == NodeKind.REMOTE
+
     companion object {
+        fun remote(accountId: String, e: app.scrollback.remote.fs.RemoteEntry): FileNode = FileNode(
+            kind = NodeKind.REMOTE,
+            id = e.path,
+            name = e.name,
+            isDir = e.isDir,
+            size = e.size,
+            modified = e.modified,
+            mime = if (e.isDir) DocumentsContract.Document.MIME_TYPE_DIR else Mime.guess(e.name),
+            treeUri = accountId,
+            path = e.path,
+        )
+
         fun raw(f: File): FileNode = FileNode(
             kind = NodeKind.RAW,
             id = f.absolutePath,

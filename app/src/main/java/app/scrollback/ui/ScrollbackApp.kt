@@ -122,6 +122,13 @@ private fun AppNav() {
                 openPlayer = { nav.navigate("player") { launchSingleTop = true } },
                 openBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") },
                 openCategory = { nav.navigate("category/${it.name}") },
+                openTool = { nav.navigate(it) },
+            )
+        }
+        composable("remotes") {
+            app.scrollback.feature.files.RemoteStorageScreen(
+                onBack = { nav.popBackStack() },
+                onBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") },
             )
         }
         composable("browse?root={root}", arguments = listOf(navArgument("root") { type = NavType.StringType; defaultValue = "" })) { entry ->
@@ -189,6 +196,7 @@ private fun MainTabs(
     openPlayer: () -> Unit,
     openBrowse: (FileNode) -> Unit,
     openCategory: (Category) -> Unit,
+    openTool: (String) -> Unit,
 ) {
     val container = LocalContainer.current
     val haptics = rememberHaptics()
@@ -238,7 +246,7 @@ private fun MainTabs(
                         }
                     }
                     "pictures" -> PicturesScreen(onOpen = openFeed)
-                    "files" -> FilesHomeScreen(onBrowse = openBrowse, onCategory = openCategory)
+                    "files" -> FilesHomeScreen(onBrowse = openBrowse, onCategory = openCategory, onOpenTool = openTool)
                     "music" -> if (settings.showMusic) MusicScreen(onOpenList = openMusicList, onOpenPlaylist = openPlaylist, onOpenPlayer = openPlayer, onOpenServers = openServers) else androidx.compose.runtime.LaunchedEffect(Unit) { tab = "feed" }
                     else -> LibraryScreen(onOpen = openFeed, onOpenPlaylist = openPlaylist, onOpenDuplicates = openDuplicates)
                 }
