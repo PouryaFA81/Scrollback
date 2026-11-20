@@ -72,9 +72,15 @@ fun TestConnectionSheet(a: ServerAccount, onDismiss: () -> Unit) {
     var run by remember { mutableStateOf(0) }
     LaunchedEffect(a.id, run) {
         report = null
-        report = runCatching { container.servers.testConnection(a) }.getOrElse {
+        val allowed = container.localNetwork.ensure(a.baseUrl, a.altUrl)
+        val r = runCatching { container.servers.testConnection(a) }.getOrElse {
             ConnectionReport(listOf(app.scrollback.accounts.ReportLine(false, "Test failed", it.javaClass.simpleName)), null, false)
         }
+        // v0.15: on Android 17 a LAN address fails without the local-network permission; say why.
+        report = if (allowed) r else r.copy(
+            lines = listOf(app.scrollback.accounts.ReportLine(false, "Local network access is off", app.scrollback.remote.LocalNetwork.DENIED_MESSAGE)) + r.lines,
+            allGood = false,
+        )
     }
     GlassSheet(onDismiss) { close ->
         SheetTitle("Test connection")
@@ -151,6 +157,7 @@ fun AlternateAddressSheet(a: ServerAccount, onDismiss: () -> Unit) {
                 val kind = ServerManager.probeKind(a.type) ?: return@Button
                 busy = true
                 scope.launch {
+                    if (!container.localNetwork.ensure(url)) { busy = false; error = app.scrollback.remote.LocalNetwork.DENIED_MESSAGE; return@launch }
                     val p = withContext(Dispatchers.IO) { container.servers.resolveNewAddress(kind, url) }
                     busy = false
                     if (!p.recognised) {

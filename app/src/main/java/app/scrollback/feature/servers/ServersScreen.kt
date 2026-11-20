@@ -279,6 +279,7 @@ private fun AddNextcloudSheet(onDismiss: () -> Unit) {
                     job = scope.launch {
                         try {
                             val flow = container.servers.loginFlow
+                            container.localNetwork.require(url)
                             // v0.14: follow the address's redirects first (http -> https, www, sub-paths)
                             // so the login, the polling and the saved account all use the address that works.
                             val probe = withContext(Dispatchers.IO) { container.servers.resolveNewAddress(app.scrollback.remote.ProbeKind.NEXTCLOUD, url) }
@@ -345,7 +346,7 @@ private fun AddPasswordServerSheet(type: AccountType, onDismiss: () -> Unit) {
             onClick = {
                 busy = true
                 scope.launch {
-                    val r = runCatching { container.signInMusicServer(type, url, user.trim(), pass) }
+                    val r = runCatching { container.localNetwork.require(url); container.signInMusicServer(type, url, user.trim(), pass) }
                     busy = false
                     r.onSuccess { Toast.makeText(ctx, "Connected — indexing music…", Toast.LENGTH_SHORT).show(); close() }
                     r.onFailure { e ->

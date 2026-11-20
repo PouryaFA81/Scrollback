@@ -21,10 +21,21 @@ import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.RepeatOne
 import androidx.compose.material.icons.outlined.Screenshot
 import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.FastForward
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import app.scrollback.ui.theme.SbSpace
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -136,6 +147,39 @@ fun SettingsScreen(
                         icon = if (settings.loopOne) Icons.Outlined.RepeatOne else Icons.Outlined.KeyboardDoubleArrowDown,
                         onClick = { launch { settingsStore.setLoopOne(!settings.loopOne) } },
                         trailing = { Toggle(settings.loopOne) { v -> launch { settingsStore.setLoopOne(v) } } },
+                    )
+                    RowDivider()
+                    SettingsRow(
+                        "Auto scroll",
+                        subtitle = if (settings.autoScroll) "Moves to the next item when a video ends (even if looping) and after ${settings.autoScrollPhotoSeconds} s on a picture"
+                        else "Off · also in the feed's playback button (top right)",
+                        icon = Icons.Outlined.Autorenew,
+                        onClick = { launch { settingsStore.setAutoScroll(!settings.autoScroll) } },
+                        trailing = { Toggle(settings.autoScroll) { v -> launch { settingsStore.setAutoScroll(v) } } },
+                    )
+                    if (settings.autoScroll) Row(
+                        Modifier.padding(start = 54.dp, end = SbSpace.l, bottom = SbSpace.m),
+                        horizontalArrangement = Arrangement.spacedBy(SbSpace.s),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Show pictures for", style = MaterialTheme.typography.bodySmall, color = SbColors.TextSecondary)
+                        listOf(3, 5, 10).forEach { sec ->
+                            app.scrollback.ui.components.GlassPill("$sec s", selected = settings.autoScrollPhotoSeconds == sec, onClick = { launch { settingsStore.setAutoScrollPhotoSeconds(sec) } })
+                        }
+                    }
+                    RowDivider()
+                    SettingsRow(
+                        "Keep screen on while playing",
+                        subtitle = "In the feed, Scrollback Player and Watch. The screen can sleep again when you pause.",
+                        icon = Icons.Outlined.LightMode,
+                        onClick = { launch { settingsStore.setKeepScreenOn(!settings.keepScreenOn) } },
+                        trailing = { Toggle(settings.keepScreenOn) { v -> launch { settingsStore.setKeepScreenOn(v) } } },
+                    )
+                    RowDivider()
+                    SettingsRow(
+                        "Press and hold for 2×",
+                        subtitle = "Hold anywhere on a playing video to watch at 2×. Let go to return to your speed.",
+                        icon = Icons.Outlined.FastForward,
                     )
                 }
             }

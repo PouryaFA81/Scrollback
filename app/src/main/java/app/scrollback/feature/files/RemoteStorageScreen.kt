@@ -207,6 +207,7 @@ private fun RemoteServerDialog(existing: ServerAccount?, onDismiss: () -> Unit) 
         val (account, secret) = build() ?: return
         busy = true; error = null
         scope.launch {
+            if (!container.localNetwork.ensure(account.baseUrl)) { busy = false; error = app.scrollback.remote.LocalNetwork.DENIED_MESSAGE; return@launch }
             val result = withContext(Dispatchers.IO) {
                 runCatching { container.remoteStorage.connect(account, secret).use { it.list(container.remoteStorage.endpoint(account)!!.root) } }
             }

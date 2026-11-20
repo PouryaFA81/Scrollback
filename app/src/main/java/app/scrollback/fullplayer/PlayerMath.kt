@@ -149,3 +149,48 @@ class AbRepeat {
     /** Where to jump at [nowMs], or null to keep playing. */
     fun check(nowMs: Long): Long? = if (active && nowMs >= b!!) a else null
 }
+
+/**
+ * v0.15: which decoder the full player really uses. libVLC's hardware path (Android MediaCodec)
+ * only exists for some formats; for the rest (MPEG-2 on most phones, VC-1, AV1 on phones without
+ * an AV1 chip…) it silently falls back to software, so "HW on" isn't the same as "HW in use".
+ */
+object DecoderInfo {
+    /** libVLC's fourcc int ("h264", "hevc", "VP90"…) as text. */
+    fun fourccText(fourcc: Int): String = buildString {
+        for (i in 0 until 4) {
+            val c = (fourcc ushr (8 * i)) and 0xff
+            if (c in 32..126) append(c.toChar())
+        }
+    }
+
+    /** MediaCodec MIME type for a libVLC codec, or null when libVLC can only decode it in software. */
+    fun mimeFor(fourcc: String, description: String? = null): String? {
+        when (fourcc.trim()) {
+            "h264", "H264", "avc1", "AVC1", "x264" -> return "video/avc"
+            "hevc", "HEVC", "h265", "hvc1", "hev1" -> return "video/hevc"
+            "VP80", "vp80", "VP8 " -> return "video/x-vnd.on2.vp8"
+            "VP90", "vp90", "VP9 ", "vp09" -> return "video/x-vnd.on2.vp9"
+            "av01", "AV01" -> return "video/av01"
+            "mpgv", "mp2v", "mp1v", "MPG2" -> return "video/mpeg2"
+            "mp4v", "MP4V", "DIVX", "XVID", "xvid", "FMP4" -> return "video/mp4v-es"
+            "h263", "H263", "s263" -> return "video/3gpp"
+        }
+        val d = description?.lowercase() ?: return null
+        return when {
+            "avc" in d || "h264" in d -> "video/avc"
+            "hevc" in d || "h265" in d -> "video/hevc"
+            "vp9" in d -> "video/x-vnd.on2.vp9"
+            "vp8" in d -> "video/x-vnd.on2.vp8"
+            "av1" in d -> "video/av01"
+            "mpeg-2" in d || "mpeg-1/2" in d || "mpeg2" in d -> "video/mpeg2"
+            "mpeg-4 video" in d || "mpeg-4 part 2" in d -> "video/mp4v-es"
+            "h263" in d || "h.263" in d -> "video/3gpp"
+            else -> null
+        }
+    }
+
+    /** "HW" only when hardware decoding is on and the phone has a hardware decoder for this video. */
+    fun label(hwEnabled: Boolean, mime: String?, hasHardwareDecoder: (String) -> Boolean): String =
+        if (hwEnabled && mime != null && hasHardwareDecoder(mime)) "HW" else "SW"
+}

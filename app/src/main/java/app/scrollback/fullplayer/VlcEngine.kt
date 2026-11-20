@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import app.scrollback.AppContainer
+import app.scrollback.ui.components.HOLD_SPEED
 import app.scrollback.remote.fs.RemotePaths
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -69,6 +70,10 @@ class VlcEngine private constructor(private val app: Context, private val contai
     /** Bumps whenever track lists change, so the UI re-reads them. */
     var tracksVersion by mutableIntStateOf(0); private set
     var codecInfo by mutableStateOf(""); private set
+    /** v0.15: "HW" or "SW", the decoder actually in use (see [DecoderInfo]). */
+    var decoderLabel by mutableStateOf(""); private set
+    /** v0.15: press-and-hold 2× is active; [rate] keeps the user's own speed. */
+    var holding by mutableStateOf(false); private set
     val ab = AbRepeat()
     var abVersion by mutableIntStateOf(0); private set
 
@@ -139,7 +144,21 @@ class VlcEngine private constructor(private val app: Context, private val contai
     private fun readCodec() {
         val v = runCatching { player?.currentVideoTrack }.getOrNull()
         codecInfo = v?.let { "${it.codec ?: "video"} ${it.width}×${it.height}" } ?: ""
+        decoderLabel = if (v == null) "" else {
+            val mime = DecoderInfo.mimeFor(DecoderInfo.fourccText(v.fourcc), v.codec)
+            DecoderInfo.label(hwDecoding, mime) { m -> hasHardwareDecoder(m, v.width, v.height) }
+        }
     }
+
+    private fun hasHardwareDecoder(mime: String, w: Int, h: Int): Boolean = runCatching {
+        android.media.MediaCodecList(android.media.MediaCodecList.REGULAR_CODECS).codecInfos.any { info ->
+            !info.isEncoder && info.isHardwareAccelerated && !info.isSoftwareOnly &&
+                info.supportedTypes.any { it.equals(mime, ignoreCase = true) } &&
+                (w <= 0 || h <= 0 || runCatching {
+                    info.getCapabilitiesForType(mime).videoCapabilities?.isSizeSupported(w, h) ?: true
+                }.getOrDefault(true))
+        }
+    }.getOrDefault(false)
 
     // ---- Views ----
 
@@ -270,6 +289,7 @@ class VlcEngine private constructor(private val app: Context, private val contai
         mp.media = media
         media.release()
         autoSubPending = prefs.autoSubtitles
+        holding = false; decoderLabel = ""
         mp.rate = rate
         mp.play()
         // Delays are per media in libVLC; re-apply the user's choice.
@@ -290,7 +310,14 @@ class VlcEngine private constructor(private val app: Context, private val contai
         val t = if (lengthMs > 0) ms.coerceIn(0, lengthMs) else ms.coerceAtLeast(0)
         mp.setTime(t); timeMs = t
     }
-    fun setSpeed(s: Float) { rate = PlayerMath.clampSpeed(s); player?.rate = rate }
+    fun setSpeed(s: Float) { rate = PlayerMath.clampSpeed(s); if (!holding) player?.rate = rate }
+
+    /** v0.15: press and hold = 2× until released, then back to [rate]. */
+    fun hold(on: Boolean) {
+        if (on == holding) return
+        holding = on
+        player?.rate = if (on) HOLD_SPEED else rate
+    }
     fun setAudioDelay(ms: Long) { audioDelayMs = ms; player?.audioDelay = ms * 1000 }
     fun setSubDelay(ms: Long) { subDelayMs = ms; player?.spuDelay = ms * 1000 }
     fun tapAb() { ab.tap(timeMs); abVersion++ }

@@ -158,3 +158,28 @@ class FullPlayerMathTest {
         assertFalse(JellyfinErrors.friendly(IllegalStateException("NPE at Foo.kt:12")).contains("Foo"))
     }
 }
+
+class DecoderInfoTest {
+    private fun fourcc(s: String) = s.foldIndexed(0) { i, acc, c -> acc or (c.code shl (8 * i)) }
+
+    @org.junit.Test fun fourccAndMime() {
+        val d = app.scrollback.fullplayer.DecoderInfo
+        org.junit.Assert.assertEquals("h264", d.fourccText(fourcc("h264")))
+        org.junit.Assert.assertEquals("video/avc", d.mimeFor("h264"))
+        org.junit.Assert.assertEquals("video/hevc", d.mimeFor("hevc"))
+        org.junit.Assert.assertEquals("video/av01", d.mimeFor("av01"))
+        org.junit.Assert.assertEquals("video/mpeg2", d.mimeFor("mpgv"))
+        org.junit.Assert.assertEquals("video/avc", d.mimeFor("????", "H264 - MPEG-4 AVC (part 10)"))
+        org.junit.Assert.assertNull(d.mimeFor("WVC1", "VC-1"))
+    }
+
+    @org.junit.Test fun labelShowsDecoderInUse() {
+        val d = app.scrollback.fullplayer.DecoderInfo
+        val phone = setOf("video/avc", "video/hevc", "video/x-vnd.on2.vp9")
+        org.junit.Assert.assertEquals("HW", d.label(true, "video/avc") { it in phone })
+        org.junit.Assert.assertEquals("SW", d.label(true, "video/av01") { it in phone })   // no AV1 chip
+        org.junit.Assert.assertEquals("SW", d.label(true, "video/mpeg2") { it in phone })
+        org.junit.Assert.assertEquals("SW", d.label(true, null) { true })                  // VC-1 etc.
+        org.junit.Assert.assertEquals("SW", d.label(false, "video/avc") { true })          // HW turned off
+    }
+}

@@ -60,6 +60,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.map
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -301,6 +302,27 @@ fun WatchPlayerScreen(itemId: String, fromStart: Boolean, onBack: () -> Unit) {
     val player = remember { container.playback.newPlayer() }
     val controller = remember { JfPlayerController(api, itemId, player, container.appScope, onChanged = { watch.changed() }, onEnded = onBack) }
     var controlsVisible by remember { mutableStateOf(true) }
+    // v0.15: keep the screen on only while playing; press and hold for 2×.
+    val keepOn by remember { container.settings.settings.map { it.keepScreenOn } }.collectAsStateWithLifecycle(true)
+    var isPlaying by remember { mutableStateOf(false) }
+    DisposableEffect(player) {
+        val l = object : androidx.media3.common.Player.Listener {
+            override fun onIsPlayingChanged(playing: Boolean) { isPlaying = playing }
+        }
+        player.addListener(l)
+        onDispose { player.removeListener(l) }
+    }
+    app.scrollback.ui.components.KeepScreenOn(keepOn && isPlaying)
+    val holding = remember { mutableStateOf(false) }
+    val heldFrom = remember { floatArrayOf(1f) }
+    val haptics = app.scrollback.ui.components.rememberHaptics()
+    fun hold(on: Boolean) {
+        if (on == holding.value) return
+        holding.value = on
+        if (on) { heldFrom[0] = player.playbackParameters.speed; player.setPlaybackSpeed(app.scrollback.ui.components.HOLD_SPEED); haptics.longPress() }
+        else player.setPlaybackSpeed(heldFrom[0])
+    }
+    val holdRef = androidx.compose.runtime.rememberUpdatedState(::hold)
     var pick by remember { mutableStateOf<String?>(null) } // "audio" | "subs"
     val activity = androidx.activity.compose.LocalActivity.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -330,7 +352,17 @@ fun WatchPlayerScreen(itemId: String, fromStart: Boolean, onBack: () -> Unit) {
                 PlayerView(ctx).apply {
                     layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    keepScreenOn = true
+                    // Long press = 2× (the controller still gets normal taps; the release after a hold is swallowed).
+                    val detector = android.view.GestureDetector(ctx, object : android.view.GestureDetector.SimpleOnGestureListener() {
+                        override fun onLongPress(e: android.view.MotionEvent) { if (player.isPlaying) holdRef.value(true) }
+                    })
+                    setOnTouchListener { _, ev ->
+                        detector.onTouchEvent(ev)
+                        if (!holding.value) false else {
+                            if (ev.actionMasked == android.view.MotionEvent.ACTION_UP || ev.actionMasked == android.view.MotionEvent.ACTION_CANCEL) holdRef.value(false)
+                            true
+                        }
+                    }
                     setShowNextButton(false)
                     setShowPreviousButton(false)
                     setShowSubtitleButton(false)
@@ -341,6 +373,11 @@ fun WatchPlayerScreen(itemId: String, fromStart: Boolean, onBack: () -> Unit) {
             },
             onRelease = { it.player = null },
             modifier = Modifier.fillMaxSize(),
+        )
+
+        app.scrollback.ui.components.SpeedHoldPill(
+            holding.value,
+            Modifier.align(Alignment.TopCenter).windowInsetsPadding(WindowInsets.safeDrawing).padding(top = 64.dp),
         )
 
         if (controller.loading && controller.error == null) {

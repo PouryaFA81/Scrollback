@@ -155,6 +155,10 @@ fun WatchHomeScreen(
     val grid = rememberLazyGridState()
     val collapsed by grid.collapsedState()
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + SbSpace.xl
+    // v0.15: a Jellyfin on the home network needs Android 17's local-network permission.
+    androidx.compose.runtime.LaunchedEffect(account?.id) {
+        account?.let { container.localNetwork.ensure(it.baseUrl, it.altUrl, userAction = false) }
+    }
 
     GlassScreen(
         title = "Watch",

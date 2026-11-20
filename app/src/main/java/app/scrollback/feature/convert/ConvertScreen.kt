@@ -116,6 +116,7 @@ fun ConvertScreen(initial: FileNode?, onBack: () -> Unit) {
         if (!online) { error = "You're offline. Video conversion needs a connection to the vertd server."; return }
         job = scope.launch {
             runCatching {
+                container.localNetwork.require(config.vertd)
                 vert.convertVideo(s.name, s.size, s.open, target, when (speed) { 0 -> 4; 2 -> 1; else -> 3 }) { st -> stage = st }
             }.onSuccess { result = it; Toast.makeText(ctx, "Saved to Download/Scrollback", Toast.LENGTH_SHORT).show() }
                 .onFailure { if (it !is kotlinx.coroutines.CancellationException) error = app.scrollback.convert.vertErrorMessage(it) }
@@ -208,6 +209,7 @@ fun ConvertScreen(initial: FileNode?, onBack: () -> Unit) {
 @Composable
 private fun VertServerDialog(vert: VertService, config: VertConfig, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
+    val container = LocalContainer.current
     val scope = rememberCoroutineScope()
     var instance by remember { mutableStateOf(config.instance) }
     var vertd by remember { mutableStateOf(config.vertd) }
@@ -249,7 +251,7 @@ private fun VertServerDialog(vert: VertService, config: VertConfig, onDismiss: (
                 TextButton(onClick = {
                     vert.save(instance, vertd); if (header.isNotBlank()) vert.setHeader(header)
                     status = "Testing…"
-                    scope.launch { status = runCatching { "Connected (vertd ${vert.test()})" }.getOrElse { "Failed: ${app.scrollback.convert.vertErrorMessage(it)}" } }
+                    scope.launch { status = runCatching { container.localNetwork.require(instance, vertd); "Connected (vertd ${vert.test()})" }.getOrElse { "Failed: ${app.scrollback.convert.vertErrorMessage(it)}" } }
                 }) { Text("Test", color = SbColors.TextSecondary) }
             }
         },

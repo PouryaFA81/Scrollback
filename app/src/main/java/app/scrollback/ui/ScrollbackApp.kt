@@ -92,6 +92,7 @@ fun ScrollbackRoot() {
         LockScreen(verify = { container.settings.verifyPin(it) }, onUnlocked = { container.unlockApp() })
     } else {
         AppNav()
+        app.scrollback.ui.components.LocalNetworkPrompt()
     }
 }
 
@@ -273,8 +274,14 @@ private fun MainTabs(
     val haptics = rememberHaptics()
     val settings by container.settings.settings.collectAsStateWithLifecycle(Settings())
     var tab by rememberSaveable { mutableStateOf("feed") }
-    var feedMode by rememberSaveable { mutableStateOf(0) } // 0 = Random, 1 = Saved
-    var seed by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
+    // v0.15: Random/Saved and Random's shuffle seed live on disk (FeedStateStore), so the feed keeps
+    // its order and place after a screen lock, the PIN lock or Android closing the app. Before,
+    // they were in-memory only: a new seed and page 0 every time this screen was rebuilt.
+    var feedMode by rememberSaveable { mutableStateOf(-1) } // 0 = Random, 1 = Saved, -1 = loading
+    var seed by rememberSaveable { mutableLongStateOf(0L) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (feedMode < 0) { val t = container.feedState.tab(); seed = t.seed; feedMode = t.mode }
+    }
     val haze = rememberHazeState()
 
     CompositionLocalProvider(LocalHazeState provides haze, app.scrollback.ui.LocalOpenSettings provides openSettings) {
@@ -287,11 +294,16 @@ private fun MainTabs(
                 when (t) {
                     "feed" -> {
                         val toggle: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
-                            SegmentedToggle(listOf("Random", "Saved"), feedMode, onSelect = { haptics.tick(); feedMode = it })
+                            SegmentedToggle(listOf("Random", "Saved"), feedMode, onSelect = {
+                                haptics.tick(); feedMode = it
+                                container.appScope.launch { container.feedState.setMode(it) }
+                            })
                             if (feedMode == 0) {
                                 GlassIconButton(Icons.Outlined.Shuffle, "Reshuffle", onClick = {
                                     haptics.confirm()
                                     seed = System.currentTimeMillis()
+                                    val s = seed
+                                    container.appScope.launch { container.feedState.setSeed(s) }
                                 }, size = 40.dp)
                             } else {
                                 GlassIconButton(
@@ -305,14 +317,19 @@ private fun MainTabs(
                                 )
                             }
                         }
-                        androidx.compose.runtime.key(feedMode) {
+                        if (feedMode >= 0) androidx.compose.runtime.key(feedMode) {
                             FeedScreen(
-                                spec = if (feedMode == 0) FeedSpec.Random(seed) else FeedSpec.Saved(settings.savedNewestFirst),
+                                spec = if (feedMode == 0) FeedSpec.Random(seed) else FeedSpec.Saved(settings.savedNewestFirst, settings.savedFolder),
                                 startId = -1,
                                 isTab = true,
                                 onOpenFolders = openFolders,
                                 header = toggle,
                                 showTitle = false,
+                                subHeader = if (feedMode == 1) ({
+                                    app.scrollback.feature.feed.SavedFolderChooser(settings.savedFolder, onSelect = { v ->
+                                        container.appScope.launch { container.settings.setSavedFolder(v) }
+                                    })
+                                }) else null,
                             )
                         }
                     }

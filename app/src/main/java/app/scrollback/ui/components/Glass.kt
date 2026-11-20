@@ -95,6 +95,7 @@ class Haptics(private val view: android.view.View) {
     fun confirm() = view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
     fun reject() = view.performHapticFeedback(HapticFeedbackConstants.REJECT)
     fun press() = view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+    fun longPress() = view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
 }
 
 @Composable

@@ -90,6 +90,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.map
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -138,6 +140,12 @@ fun FullPlayerScreen(activity: FullPlayerActivity, engine: VlcEngine) {
 
     var controls by remember { mutableStateOf(true) }
     var locked by remember { mutableStateOf(false) }
+    val haptics = app.scrollback.ui.components.rememberHaptics()
+    // v0.15: keep the screen on only while playing (and the setting is on), not while paused.
+    val settingsStore = app.scrollback.ui.LocalContainer.current.settings
+    val keepOn by remember(settingsStore) { settingsStore.settings.map { it.keepScreenOn } }
+        .collectAsStateWithLifecycle(true)
+    app.scrollback.ui.components.KeepScreenOn(keepOn && engine.playing)
     var touchedAt by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var aspect by remember { mutableStateOf(engine.prefs.aspect) }
     var zoom by remember { mutableFloatStateOf(1f) }
@@ -237,7 +245,7 @@ fun FullPlayerScreen(activity: FullPlayerActivity, engine: VlcEngine) {
                                 )
                                 flash(null, if (zoom <= 1.01f) aspect.label else "Zoom %.1f×".format(zoom))
                                 ev.changes.forEach { it.consume() }
-                            } else if (!pinching && !fromEdge) {
+                            } else if (!pinching && !fromEdge && !engine.holding) {
                                 val c = ev.changes.firstOrNull() ?: break
                                 total += c.positionChange()
                                 if (g == PlayerMath.Gesture.NONE) {
@@ -276,6 +284,11 @@ fun FullPlayerScreen(activity: FullPlayerActivity, engine: VlcEngine) {
                 }
                 .pointerInput(locked) {
                     detectTapGestures(
+                        // v0.15: press and hold = 2× while held (swipes are ignored until you let go).
+                        onPress = { tryAwaitRelease(); engine.hold(false) },
+                        onLongPress = {
+                            if (!locked && engine.playing) { engine.hold(true); haptics.longPress() }
+                        },
                         onTap = { poke(); controls = !controls },
                         onDoubleTap = { o ->
                             if (locked) return@detectTapGestures
@@ -286,6 +299,11 @@ fun FullPlayerScreen(activity: FullPlayerActivity, engine: VlcEngine) {
                         },
                     )
                 },
+        )
+
+        if (!activity.inPip) app.scrollback.ui.components.SpeedHoldPill(
+            engine.holding,
+            Modifier.align(Alignment.TopCenter).windowInsetsPadding(WindowInsets.safeDrawing).padding(top = 64.dp),
         )
 
         if (engine.buffering && engine.error == null) CircularProgressIndicator(Modifier.align(Alignment.Center), color = Color.White)
@@ -335,7 +353,7 @@ fun FullPlayerScreen(activity: FullPlayerActivity, engine: VlcEngine) {
                             val sub = listOfNotNull(
                                 if (engine.items.size > 1) "${engine.index + 1} / ${engine.items.size}" else null,
                                 engine.codecInfo.ifBlank { null },
-                                if (engine.hwDecoding) "HW" else "SW",
+                                engine.decoderLabel.ifBlank { null },
                             ).joinToString(" · ")
                             Text(sub, color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall, maxLines = 1)
                         }

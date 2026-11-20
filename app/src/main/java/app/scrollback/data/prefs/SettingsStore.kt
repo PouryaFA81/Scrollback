@@ -37,6 +37,14 @@ data class Settings(
     val hideMusicDuplicates: Boolean = false,
     /** v0.14: preferred source order for merged songs (source ids, preferred first). */
     val musicSourceOrder: List<Long> = emptyList(),
+    /** v0.15: keep the screen on while a video plays (feed, Scrollback Player, Watch). */
+    val keepScreenOn: Boolean = true,
+    /** v0.15: Saved feed folder filter ("" = all folders, else [app.scrollback.core.FolderFilter]). */
+    val savedFolder: String = "",
+    /** v0.15: auto scroll — move to the next item when a video ends (even if looping) or a picture has been shown. */
+    val autoScroll: Boolean = false,
+    /** v0.15: how long auto scroll shows a picture, in seconds (3, 5 or 10). */
+    val autoScrollPhotoSeconds: Int = 5,
 ) {
     val hasPin: Boolean get() = pinSalt != null && pinHash != null
 }
@@ -57,6 +65,10 @@ class SettingsStore(private val context: Context) {
         val showMusic = booleanPreferencesKey("show_music")
         val hideMusicDupes = booleanPreferencesKey("hide_music_duplicates")
         val musicSourceOrder = stringPreferencesKey("music_source_order")
+        val keepScreenOn = booleanPreferencesKey("keep_screen_on")
+        val savedFolder = stringPreferencesKey("saved_folder")
+        val autoScroll = booleanPreferencesKey("auto_scroll")
+        val autoScrollPhoto = androidx.datastore.preferences.core.intPreferencesKey("auto_scroll_photo_seconds")
     }
 
     val settings: Flow<Settings> = context.dataStore.data.map { p ->
@@ -75,6 +87,10 @@ class SettingsStore(private val context: Context) {
             showMusic = p[K.showMusic] ?: true,
             hideMusicDuplicates = p[K.hideMusicDupes] ?: false,
             musicSourceOrder = p[K.musicSourceOrder].orEmpty().split(',').mapNotNull { it.trim().toLongOrNull() },
+            keepScreenOn = p[K.keepScreenOn] ?: true,
+            savedFolder = p[K.savedFolder].orEmpty(),
+            autoScroll = p[K.autoScroll] ?: false,
+            autoScrollPhotoSeconds = p[K.autoScrollPhoto] ?: 5,
         )
     }
 
@@ -103,6 +119,10 @@ class SettingsStore(private val context: Context) {
     suspend fun setShowMusic(v: Boolean) = context.dataStore.edit { it[K.showMusic] = v }
     suspend fun setHideMusicDuplicates(v: Boolean) = context.dataStore.edit { it[K.hideMusicDupes] = v }
     suspend fun setMusicSourceOrder(ids: List<Long>) = context.dataStore.edit { it[K.musicSourceOrder] = ids.joinToString(",") }
+    suspend fun setKeepScreenOn(v: Boolean) = context.dataStore.edit { it[K.keepScreenOn] = v }
+    suspend fun setAutoScroll(v: Boolean) = context.dataStore.edit { it[K.autoScroll] = v }
+    suspend fun setAutoScrollPhotoSeconds(v: Int) = context.dataStore.edit { it[K.autoScrollPhoto] = v }
+    suspend fun setSavedFolder(v: String) = context.dataStore.edit { it[K.savedFolder] = v }
     suspend fun setFilesGrid(v: Boolean) = context.dataStore.edit { it[K.filesGrid] = v }
     suspend fun setFilesSort(by: String, ascending: Boolean) = context.dataStore.edit { it[K.filesSort] = by; it[K.filesAsc] = ascending }
 }

@@ -41,6 +41,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.EditNote
@@ -135,6 +136,8 @@ fun FeedScreen(
     header: @Composable RowScope.() -> Unit = {},
     /** Main Feed tab: the segmented Random | Saved toggle replaces the title pill. */
     showTitle: Boolean = true,
+    /** v0.15: a second row under the top bar (the Saved feed's folder chooser). */
+    subHeader: (@Composable () -> Unit)? = null,
 ) {
     val container = LocalContainer.current
     val repo = container.library
@@ -159,9 +162,19 @@ fun FeedScreen(
     val bottomReserve = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
         if (isTab) FloatingNavReserve else 24.dp
 
+    // v0.15: the Feed tab remembers its place on disk (per Random / Saved order + folder), so
+    // switching tabs, locking the phone or Android closing the app never sends it back to the top.
+    val posKey = if (isTab && startId < 0) spec.positionKey else null
+    val seed = (spec as? FeedSpec.Random)?.seed ?: 0L
+    var savedPos by remember(posKey) { mutableStateOf(posKey?.let { container.feedState.cached(it) }) }
+    var posLoaded by remember(posKey) { mutableStateOf(posKey == null || savedPos != null) }
+    LaunchedEffect(posKey) {
+        if (!posLoaded && posKey != null) { savedPos = container.feedState.position(posKey); posLoaded = true }
+    }
+
     Box(Modifier.fillMaxSize().background(SbColors.Background)) {
         when {
-            order == null -> Unit
+            order == null || !posLoaded -> Unit
             items.isEmpty() -> EmptyState(
                 icon = if (spec is FeedSpec.Pictures) Icons.Outlined.FolderOpen else Icons.Outlined.VideoLibrary,
                 title = "Nothing here yet",
@@ -174,10 +187,24 @@ fun FeedScreen(
                 } else null,
             )
             else -> key(spec, showHidden) {
-                FeedPager(items, byId, startId, settings, bottomReserve)
+                FeedPager(
+                    items, byId,
+                    initialPage = { app.scrollback.core.FeedPos.startIndex(items.map { it.id }, startId, savedPos, seed) },
+                    onSettled = { id, index ->
+                        if (posKey != null) container.appScope.launch {
+                            container.feedState.savePosition(posKey, app.scrollback.core.FeedPos(seed, id, index))
+                        }
+                    },
+                    settings = settings,
+                    bottomReserve = bottomReserve,
+                    topReserve = if (subHeader != null) 112.dp else 64.dp,
+                )
             }
         }
-        FeedTopBar(if (showTitle) spec.title else "", onBack, settings, header)
+        Column {
+            FeedTopBar(if (showTitle) spec.title else "", onBack, settings, header)
+            subHeader?.let { Box(Modifier.padding(horizontal = SbSpace.m)) { it() } }
+        }
     }
 }
 
@@ -235,15 +262,62 @@ private fun FeedTopBar(
                 }
             }
         }
-        GlassIconButton(
-            if (settings.loopOne) Icons.Outlined.RepeatOne else Icons.Outlined.KeyboardDoubleArrowDown,
-            if (settings.loopOne) "Looping this video" else "Auto-advance",
-            onClick = {
-                haptics.tick()
-                container.appScope.launch { container.settings.setLoopOne(!settings.loopOne) }
-            },
-            size = 40.dp,
-        )
+        // v0.15: one "when it ends" menu for loop / play next / auto scroll (keeps the bar uncluttered).
+        Box {
+            var playMenu by remember { mutableStateOf(false) }
+            GlassIconButton(
+                when {
+                    settings.autoScroll -> Icons.Outlined.Autorenew
+                    settings.loopOne -> Icons.Outlined.RepeatOne
+                    else -> Icons.Outlined.KeyboardDoubleArrowDown
+                },
+                when {
+                    settings.autoScroll -> "Auto scroll is on"
+                    settings.loopOne -> "Looping this video"
+                    else -> "Auto-advance"
+                },
+                onClick = { haptics.tick(); playMenu = true },
+                size = 40.dp,
+                tint = if (settings.autoScroll) SbColors.Accent else SbColors.TextPrimary,
+            )
+            DropdownMenu(playMenu, { playMenu = false }, containerColor = SbColors.SurfaceHigh, shape = SbRadius.Card) {
+                fun set(block: suspend () -> Unit) { haptics.tick(); container.appScope.launch { block() } }
+                DropdownMenuItem(
+                    text = { Text("Auto scroll", fontWeight = FontWeight.SemiBold) },
+                    leadingIcon = { Icon(Icons.Outlined.Autorenew, null) },
+                    trailingIcon = { app.scrollback.ui.components.SbSwitch(settings.autoScroll) { v -> set { container.settings.setAutoScroll(v) } } },
+                    onClick = { set { container.settings.setAutoScroll(!settings.autoScroll) } },
+                )
+                if (settings.autoScroll) Row(
+                    Modifier.padding(horizontal = SbSpace.m, vertical = SbSpace.xs),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Pictures", style = MaterialTheme.typography.labelMedium, color = SbColors.TextSecondary)
+                    listOf(3, 5, 10).forEach { s ->
+                        GlassPill("$s s", selected = settings.autoScrollPhotoSeconds == s, onClick = { set { container.settings.setAutoScrollPhotoSeconds(s) } })
+                    }
+                }
+                androidx.compose.material3.HorizontalDivider(color = SbColors.Divider, thickness = 0.5.dp)
+                Text(
+                    if (settings.autoScroll) "When a video ends (auto scroll moves on anyway)" else "When a video ends",
+                    style = MaterialTheme.typography.labelMedium, color = SbColors.TextSecondary,
+                    modifier = Modifier.padding(horizontal = SbSpace.m, vertical = SbSpace.xs),
+                )
+                DropdownMenuItem(
+                    text = { Text("Loop it", fontWeight = if (settings.loopOne) FontWeight.SemiBold else FontWeight.Normal) },
+                    leadingIcon = { Icon(Icons.Outlined.RepeatOne, null) },
+                    enabled = !settings.autoScroll,
+                    onClick = { playMenu = false; set { container.settings.setLoopOne(true) } },
+                )
+                DropdownMenuItem(
+                    text = { Text("Play the next one", fontWeight = if (!settings.loopOne) FontWeight.SemiBold else FontWeight.Normal) },
+                    leadingIcon = { Icon(Icons.Outlined.KeyboardDoubleArrowDown, null) },
+                    enabled = !settings.autoScroll,
+                    onClick = { playMenu = false; set { container.settings.setLoopOne(false) } },
+                )
+            }
+        }
     }
 }
 
@@ -254,16 +328,30 @@ private fun formatSpeed(s: Float): String = if (s == s.toInt().toFloat()) s.toIn
 private fun FeedPager(
     items: List<MediaEntity>,
     byId: Map<Long, MediaEntity>,
-    startId: Long,
+    initialPage: () -> Int,
+    onSettled: (id: Long, index: Int) -> Unit,
     settings: Settings,
     bottomReserve: androidx.compose.ui.unit.Dp,
+    topReserve: androidx.compose.ui.unit.Dp,
 ) {
     val container = LocalContainer.current
     val repo = container.library
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(initialPage = items.indexOfFirst { it.id == startId }.coerceAtLeast(0)) { items.size }
+    val pagerState = rememberPagerState(initialPage = remember { initialPage() }) { items.size }
     val player = remember { container.playback.newPlayer() }
+    val haptics = rememberHaptics()
+    var isPlaying by remember { mutableStateOf(false) }
+    // v0.15: press and hold for 2×; releasing goes back to your speed.
+    var holding by remember { mutableStateOf(false) }
+    val currentSpeed by androidx.compose.runtime.rememberUpdatedState(settings.defaultSpeed)
+    fun setHold(on: Boolean) {
+        if (on == holding) return
+        holding = on
+        player.setPlaybackSpeed(if (on) app.scrollback.ui.components.HOLD_SPEED else currentSpeed)
+        if (on) haptics.longPress()
+    }
+    app.scrollback.ui.components.KeepScreenOn(settings.keepScreenOn && isPlaying)
     var currentId by remember { mutableStateOf<Long?>(null) }
     var progress by remember { mutableFloatStateOf(0f) }
     var sheet by remember { mutableStateOf<FeedSheet?>(null) }
@@ -276,15 +364,26 @@ private fun FeedPager(
         container.appScope.launch { repo.savePosition(id, save) }
     }
 
-    LaunchedEffect(settings.loopOne) {
-        player.repeatMode = if (settings.loopOne) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+    // v0.15: auto scroll overrides "loop this video": a finished video always moves on.
+    LaunchedEffect(settings.loopOne, settings.autoScroll) {
+        player.repeatMode = if (settings.loopOne && !settings.autoScroll) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+    }
+    var touching by remember { mutableStateOf(false) }
+    var resumed by remember { mutableStateOf(true) }
+    var endedId by remember { mutableStateOf<Long?>(null) }
+    fun advance() = scope.launch {
+        val next = pagerState.currentPage + 1
+        if (next < pagerState.pageCount) pagerState.animateScrollToPage(next, animationSpec = SbMotion.gentle())
     }
     LaunchedEffect(settings.defaultSpeed) { player.setPlaybackSpeed(settings.defaultSpeed) }
 
     val settledItem = items.getOrNull(pagerState.settledPage)
     LaunchedEffect(settledItem?.id) {
         saveCurrentPosition()
+        setHold(false)
+        endedId = null
         val item = settledItem ?: return@LaunchedEffect
+        onSettled(item.id, pagerState.settledPage)
         if (item.isVideo) {
             currentId = item.id
             val req = repo.playback(item)
@@ -312,13 +411,11 @@ private fun FeedPager(
                 android.widget.Toast.makeText(context, "Opening in the full player…", android.widget.Toast.LENGTH_SHORT).show()
                 container.appScope.launch { app.scrollback.fullplayer.FullPlayer.playMedia(context, container, item) }
             }
+            override fun onIsPlayingChanged(playing: Boolean) { isPlaying = playing }
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_ENDED && player.repeatMode == Player.REPEAT_MODE_OFF) {
                     currentId?.let { id -> container.appScope.launch { repo.savePosition(id, 0) } }
-                    scope.launch {
-                        val next = pagerState.currentPage + 1
-                        if (next < pagerState.pageCount) pagerState.animateScrollToPage(next, animationSpec = SbMotion.gentle())
-                    }
+                    endedId = currentId
                 }
             }
         }
@@ -330,12 +427,29 @@ private fun FeedPager(
         }
     }
 
+    // Move on after a video ends, but not while you're touching the screen, holding for 2× or
+    // have a sheet open; it continues as soon as you let go or close the sheet.
+    LaunchedEffect(endedId, touching, holding, sheet) {
+        if (endedId != null && endedId == settledItem?.id && !touching && !holding && sheet == null) {
+            endedId = null
+            advance()
+        }
+    }
+    // v0.15 auto scroll for pictures: show each one for the chosen time, then move on.
+    // The timer starts over after you touch the screen or close a sheet.
+    LaunchedEffect(settledItem?.id, settings.autoScroll, settings.autoScrollPhotoSeconds, touching, sheet, resumed) {
+        val item = settledItem ?: return@LaunchedEffect
+        if (!settings.autoScroll || item.isVideo || touching || sheet != null || !resumed) return@LaunchedEffect
+        delay(settings.autoScrollPhotoSeconds.coerceIn(1, 60) * 1000L)
+        advance()
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val obs = LifecycleEventObserver { _, e ->
             when (e) {
-                Lifecycle.Event.ON_PAUSE -> { saveCurrentPosition(); player.pause() }
-                Lifecycle.Event.ON_RESUME -> if (currentId != null) player.play()
+                Lifecycle.Event.ON_PAUSE -> { resumed = false; setHold(false); saveCurrentPosition(); player.pause() }
+                Lifecycle.Event.ON_RESUME -> { resumed = true; if (currentId != null) player.play() }
                 else -> Unit
             }
         }
@@ -365,8 +479,14 @@ private fun FeedPager(
                 player = player,
                 bottomReserve = bottomReserve,
                 onSheet = { sheet = it },
+                onHold = ::setHold,
+                onTouch = { touching = it },
             )
         }
+        app.scrollback.ui.components.SpeedHoldPill(
+            holding,
+            Modifier.align(Alignment.TopCenter).windowInsetsPadding(WindowInsets.statusBars).padding(top = topReserve),
+        )
         if (settledItem?.isVideo == true) {
             SeekBar(
                 progress = { progress },
@@ -396,7 +516,11 @@ private fun FeedPage(
     player: ExoPlayer,
     bottomReserve: androidx.compose.ui.unit.Dp,
     onSheet: (FeedSheet) -> Unit,
+    onHold: (Boolean) -> Unit,
+    onTouch: (Boolean) -> Unit,
 ) {
+    val hold by androidx.compose.runtime.rememberUpdatedState(onHold)
+    val touch by androidx.compose.runtime.rememberUpdatedState(onTouch)
     val container = LocalContainer.current
     val repo = container.library
     val context = LocalContext.current
@@ -419,6 +543,16 @@ private fun FeedPage(
             .background(SbColors.Background)
             .pointerInput(item.id, isCurrent) {
                 detectTapGestures(
+                    // v0.15: press and hold = 2× while held (the feed had no long-press action before).
+                    onPress = {
+                        if (isCurrent) {
+                            touch(true)
+                            tryAwaitRelease()
+                            touch(false)
+                            hold(false)
+                        }
+                    },
+                    onLongPress = { if (item.isVideo && isCurrent && player.isPlaying) hold(true) },
                     onTap = {
                         if (item.isVideo && isCurrent) {
                             if (player.isPlaying) player.pause() else player.play()

@@ -52,6 +52,10 @@ class AppContainer(context: Context) {
     /** v0.10 office suite: document copies for the viewers, recent documents. */
     val office = app.scrollback.office.OfficeIo(context, files)
     /** v0.11 nearby sharing (LocalSend v2); runs only while its screen is open or a transfer is active. */
+    /** v0.15: Android 17 local-network permission for server connections. */
+    val localNetwork = app.scrollback.remote.LocalNetworkAccess(context)
+    /** v0.15: Feed tab position (Random/Saved, shuffle seed, current item). */
+    val feedState = app.scrollback.data.prefs.FeedStateStore(context)
     val nearby = app.scrollback.nearby.NearbyManager(context, http, credentials, files, appScope)
 
     private val _session = MutableStateFlow(Session())
