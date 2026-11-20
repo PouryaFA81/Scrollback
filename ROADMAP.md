@@ -24,6 +24,7 @@ Symfonium, Finamp, NewPipe and TikTok._
 | 0.10 | Office: PDF viewer (swipe, zoom, jump, search), DOCX/XLSX/PPTX viewers via XmlPullParser (no POI, +145 KB), CSV/TSV editor, Open with |
 | 0.11 | Nearby share: LocalSend v2 (multicast + subnet scan, HTTPS self-signed + fingerprint pinning, PIN, quick save), ported from RSend; CSV in Documents; recent strip opens in Scrollback |
 | 0.12 | Watch: Jellyfin movies, shows → seasons → episodes, collections, Continue watching / Next up, details, search; Media3 direct play with HLS-transcode fallback (PlaybackInfo + device profile); audio/subtitle tracks (embedded, external, burn-in); resume and progress reporting; played/favorite sync |
+| 0.14 | Server connections and licensing: own redirect follower (sign-in survives http→https and same-server hops, WebDAV verbs keep method), canonical address at sign-in, Login Flow v2 kept on the working address, per-server alternate address with automatic fallback, Test connection; music "Hide duplicates across servers" (view-only merge, preferred source, Play from…); GPL-3.0-or-later, third-party notices, in-app licenses |
 | 0.13 | Scrollback Player (libVLC 3.7.7): Open with for video/*, Files and feed integration, automatic fallback from Media3, gestures, aspect/zoom, audio/subtitle tracks, external subs, delays, subtitle styling, speed 0.25–4×, A-B repeat, HW/SW toggle, screen lock, PiP, background audio, resume, folder playlist. +20–24 MB per release APK |
 
 ## Phase A: File-manager add-ons (0.6–0.10) ✅
@@ -58,7 +59,7 @@ The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office)
 
 Plan: use **libVLC** via Maven (LGPL, published AAR, no NDK build on this machine), with an ABI split so arm64-v8a builds carry only arm64 libraries. Media3 stays for the feed and music. LGPL keeps the repository free to pick any license, as long as the shared libraries stay dynamically linked and replaceable. Revisit libmpv if libVLC's subtitle styling or size is a problem.
 
-**Result (0.13.0):** libVLC `libvlc-all` 3.7.7, LGPL-2.1+, dynamically linked and unmodified. Measured release APK sizes: arm64-v8a 10.6 → 33.9 MB, armeabi-v7a 10.6 → 30.3 MB, universal 10.7 → 53.4 MB (x86/x86_64 excluded). **The current roadmap (phases A–A2) is complete**; next is A3 polish.
+**Result (0.13.0):** libVLC `libvlc-all` 3.7.7, LGPL-2.1+, dynamically linked and unmodified. Measured release APK sizes: arm64-v8a 10.6 → 33.9 MB, armeabi-v7a 10.6 → 30.3 MB, universal 10.7 → 53.4 MB (x86/x86_64 excluded). **The current roadmap (phases A–A2) is complete**; 0.14 went to connections, duplicates and the license, so A3 polish moves to 0.15.
 
 ## Phase A2.5: Nearby share (0.11) ✅ shipped 0.11.0
 
@@ -75,7 +76,18 @@ Scrollback, RSend and official LocalSend can then exchange files.
   so it is implemented from the public spec for interoperability and no LocalSend code is copied.
   RSend code is Pourya's own. Both are credited in the README.
 
-## Phase A3: Polish (0.14)
+## Phase A2.6: Connections, duplicates and license (0.14) ✅ shipped 0.14.0
+
+Self-hosted servers (Nextcloud, Nextcloud Music, Navidrome, Jellyfin) can have trouble with redirects,
+especially over VPN, and a Nextcloud Music and a Navidrome often share one music folder.
+- **Redirects:** OkHttp's built-in follower is replaced (see README). It used to drop the sign-in on
+  http→https and on host changes, and to turn 301/302 POSTs into GETs.
+- **Alternate address + Test connection** per server. Login Flow v2 URLs stay on the address that worked.
+- **Hide duplicates across servers:** a view-level merge with a preferred-source order. Nothing is deleted anywhere.
+- **License:** GPL-3.0-or-later, SPDX headers, THIRD_PARTY_NOTICES.md and Settings → About → Open-source licenses.
+- Still to confirm: a sign-in and browse over a full-tunnel VPN with the new fallback.
+
+## Phase A3: Polish (0.15)
 
 1. **Swipe between sub-tabs.** A HorizontalPager synced with the segmented/chip tabs: Library
    (Liked, Playlists, History, Search…), the Feed's Random|Saved, Music (Songs, Artists, Albums, Folders) and
@@ -117,7 +129,7 @@ Ideas from TikTok, Aves and NewPipe:
 
 ## Phase E: Platform and distribution
 
-1. **Make the repo public** and choose a license (GPL-3.0 fits Aves and Material Files and keeps it F-Droid friendly). The anonymous update check works once it is public.
+1. **Make the repo public.** The license is chosen: GPL-3.0-or-later (since 0.14). The anonymous update check works once it is public.
 2. **F-Droid / IzzyOnDroid** build flavour without MANAGE_EXTERNAL_STORAGE (SAF only), plus reproducible builds.
 3. **Baseline profiles + R8** tuning for startup. Keep the release APK under about 20 MB.
 4. **Localisation.** Persian first (RTL already supported), and Persian calendar dates (Aves added this).

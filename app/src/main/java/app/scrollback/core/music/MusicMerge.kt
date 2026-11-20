@@ -81,6 +81,9 @@ class MusicGroups private constructor(
     /** All copies of [id]'s song, preferred first; empty when the song has a single copy. */
     fun copiesOf(id: Long): List<MediaEntity> = groupOf[id]?.let { groups[it] }.orEmpty()
 
+    /** Items a like/unlike of [id] applies to: every copy of a merged song, else just [id]. */
+    fun likeTargets(id: Long): List<Long> = copiesOf(id).map { it.id }.ifEmpty { listOf(id) }
+
     /** Number of songs that have more than one copy, and how many rows are hidden by merging. */
     val mergedSongs: Int get() = groups.size
     val hiddenCopies: Int get() = groups.sumOf { it.size - 1 }

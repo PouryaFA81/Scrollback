@@ -77,8 +77,8 @@ fun OpenSourceLicensesScreen(onBack: () -> Unit) {
                 LargeTitle(
                     "Licenses",
                     "Scrollback is free software under the GNU General Public License v3 or later. Copyright (C) 2026 Pourya FA. " +
-                        "It is original code written from scratch for this project. Nearby share is a fresh implementation of the open LocalSend v2 protocol " +
-                        "(inspired by Pourya's RSend app; no LocalSend or RSend code is copied). The libraries below keep their own licenses.",
+                        "It is original code written from scratch for this project. Nearby share implements the open LocalSend v2 protocol " +
+                        "(ported from Pourya's own RSend app; no LocalSend code is included). The libraries below keep their own licenses.",
                 )
             }
             item {

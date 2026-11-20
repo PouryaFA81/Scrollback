@@ -7,7 +7,7 @@ indexes the folders you pick and plays them in a full-screen vertical feed — s
 order you saved them — with likes, playlists, notes, tags and search. Local folders never leave the
 device; an optional Nextcloud account can stream more media and sync your library.
 
-> Status: **v0.5** (all roadmap phases implemented) — early, personal project. Android 13+ (minSdk 33).
+> Status: **v0.14** — early, personal project. Android 13+ (minSdk 33). License: GPL-3.0-or-later.
 
 ## Features (v1)
 
@@ -92,6 +92,27 @@ Optional — Scrollback is fully usable offline and without any account. Setting
   are shown on the account and never block the app. Plain `http://` is allowed only when typed
   explicitly (for LAN servers); `https://` is the default.
 
+## Server connections: redirects, VPN and alternate addresses (v0.14)
+
+- **Redirects keep working.** Scrollback follows 301/302/303/307/308 itself (at most 10 hops). WebDAV verbs
+  (PROPFIND, PUT, MKCOL, MOVE…) and 307/308 keep their method and body. Your sign-in stays attached when a
+  server only upgrades http → https or moves to another path, and is re-applied to any address you configured
+  for that server. It is **never** sent to another host you didn't configure, nor over an https → http downgrade.
+  Before 0.14, OkHttp's built-in follower dropped the sign-in on every scheme or host change (so an `http://`
+  address that redirects to `https://` got 401s), and turned 301/302 POSTs into GETs.
+- **Sign-in resolves the real address.** Adding a server first follows its redirects (Nextcloud
+  `status.php`, Subsonic `/rest/ping.view`, Jellyfin `/System/Info/Public`) and saves the address the server
+  really answers on. Nextcloud Login Flow v2 login and poll URLs are kept on that address, even when Nextcloud
+  reports another scheme or host (its `overwrite.cli.url`, often a LAN or VPN name). That other host is saved
+  as the alternate address.
+- **Alternate address** (server → Alternate address): for example your LAN address at home and the
+  VPN/Tailscale address away. Requests go to the address that worked last and switch automatically when it
+  can't connect (or a proxy answers 502/503/504 to a read).
+- **Test connection** (server → Test connection) checks each address and lists the redirect chain, in plain
+  words. It says whether the server is what it should be and whether your saved sign-in works there. If
+  redirects end on another host, you can **Use** that address with one tap. No passwords, tokens or query
+  strings are shown.
+
 ## Music (v0.4)
 
 A **Music** section (hide it in Settings → Music) built on the same index, likes, playlists and tags:
@@ -113,7 +134,15 @@ A **Music** section (hide it in Settings → Music) built on the same index, lik
   media notification, lock-screen and Bluetooth controls; shuffle, repeat (all/one), queue (play next,
   add, reorder, remove). A glass **mini player** floats above the bottom nav; the **full player** has
   artwork, seek bar, like and add-to-playlist. Videos take audio focus, so music pauses while a feed plays.
-- **Future:** Jellyfin **video** libraries in the feeds; Subsonic scrobbling; lyrics.
+- **Hide duplicates across servers (v0.14):** when one music folder is served by several servers (for
+  example Nextcloud Music and Navidrome), turn on **Settings → Servers → Hide duplicates across servers**
+  (also in Settings → Music). Songs are matched by normalised title + artist + album, length within 2 s,
+  and track/disc number when both copies have them (untagged files need a matching length or file size).
+  Each song then shows once, from your **preferred source** (reorder the sources on the same screen), with a
+  small "2 sources" chip; long-press it (or ⋯ → **Play from…**) to play another copy. Albums and artists are
+  merged too. A like applies to every copy, and a song counts as liked if any copy is. It's a **view-only
+  merge**: nothing is deleted or changed on the phone or on any server.
+- **Future:** Subsonic scrobbling; lyrics.
 
 ## Stack
 
@@ -345,7 +374,23 @@ See [ROADMAP.md](ROADMAP.md) for what's next.
 
 ## License
 
-**TBD** — to be chosen before the repository goes public. Until then, all rights reserved.
-No third-party code is copied; SnapReel (MIT) was only a design reference. Dependencies keep their own
-licences (AndroidX/Media3/OkHttp/Coil/sshj/smbj/Commons Compress: Apache-2.0; Bouncy Castle: MIT-style; XZ for Java: 0BSD;
-NanoHTTPD: BSD-3-Clause; libVLC: LGPL-2.1+, dynamically linked and unmodified). Nearby share implements the LocalSend v2 protocol (see "Nearby share" for credits).
+Scrollback is free software, released under the **GNU General Public License v3.0 or later**
+(`GPL-3.0-or-later`). See [LICENSE](LICENSE) for the full text and [NOTICE](NOTICE).
+Copyright (C) 2026 Pourya FA.
+
+**Credits**
+
+- **Scrollback is original code**, written from scratch for this project by Pourya FA. No third-party app
+  code is copied; SnapReel (MIT) was only a visual design reference.
+- **Nearby share** is a Kotlin implementation of the open **LocalSend v2 protocol**. It was ported from
+  the `lsend` package of Pourya's own **RSend** app (same author), and contains **no LocalSend source code**.
+  It interoperates with the official LocalSend apps; Scrollback isn't affiliated with LocalSend.
+- **Third-party libraries keep their own licenses.** They are all compatible with GPLv3: Apache-2.0
+  (AndroidX, Jetpack Compose, Media3, Kotlin, OkHttp, Coil, Haze, sshj, smbj, Apache Commons, Guava), MIT
+  (Bouncy Castle, MBassador, SLF4J, Checker Framework), BSD-3-Clause (NanoHTTPD), 0BSD (XZ for Java) and
+  LGPL-2.1-or-later (**libVLC**, shipped unmodified as dynamically linked, replaceable `.so` libraries;
+  source at [code.videolan.org](https://code.videolan.org/videolan/vlc-android)). The full list with links
+  is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and in the app under **Settings → About →
+  Open-source licenses**.
+
+Every source file carries an `SPDX-License-Identifier: GPL-3.0-or-later` header.

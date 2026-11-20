@@ -181,7 +181,8 @@ fun DuplicatesScreen(onBack: () -> Unit) {
         ConfirmDialog(
             "Delete ${selectedItems.size} files?",
             (if (keepsOne) "" else "Warning: at least one group has every copy selected. ") +
-                "These files are permanently deleted from their folders and free ${Fmt.size(ctx, reclaim)}.",
+                "These files are permanently deleted from their folders and free ${Fmt.size(ctx, reclaim)}." +
+                (if (selectedItems.any { container.auth.isRemote(it.uri) }) " Files from a server are deleted on that server." else ""),
             "Delete",
             destructive = true,
             onConfirm = {

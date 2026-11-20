@@ -289,8 +289,8 @@ class LibraryRepository(
      * copy (each server that supports stars/favourites gets it), so it stays liked whichever copy plays.
      */
     suspend fun setLiked(id: Long, liked: Boolean) {
-        val copies = withContext(Dispatchers.Default) { currentMusicGroups().copiesOf(id) }.map { it.id }
-        for (cid in copies.ifEmpty { listOf(id) }) setLikedOne(cid, liked)
+        val targets = withContext(Dispatchers.Default) { currentMusicGroups().likeTargets(id) }
+        for (cid in targets) setLikedOne(cid, liked)
     }
 
     private suspend fun setLikedOne(id: Long, liked: Boolean) {
