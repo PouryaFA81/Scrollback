@@ -24,8 +24,8 @@ android {
         applicationId = "app.scrollback"
         minSdk = 33
         targetSdk = 37
-        versionCode = 14
-        versionName = "0.14.0"
+        versionCode = 15
+        versionName = "0.14.1"
     }
 
     signingConfigs {

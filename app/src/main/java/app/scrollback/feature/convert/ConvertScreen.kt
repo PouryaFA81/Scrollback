@@ -222,10 +222,11 @@ private fun VertServerDialog(vert: VertService, config: VertConfig, onDismiss: (
             Column {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(SbSpace.s)) {
                     GlassPill("vert.sh", selected = instance == VertConfig.DEFAULT_INSTANCE, onClick = { instance = VertConfig.DEFAULT_INSTANCE; vertd = VertConfig.DEFAULT_VERTD })
-                    GlassPill("vert.example.com", selected = instance == VertConfig.HOMELAB_INSTANCE, onClick = { instance = VertConfig.HOMELAB_INSTANCE; vertd = "" })
+                    GlassPill("Custom", selected = instance != VertConfig.DEFAULT_INSTANCE, onClick = { if (instance == VertConfig.DEFAULT_INSTANCE) { instance = ""; vertd = "" } })
                 }
                 Spacer(Modifier.height(SbSpace.s))
-                OutlinedTextField(instance, { instance = it }, label = { Text("VERT URL") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(instance, { instance = it }, label = { Text("VERT URL") }, placeholder = { Text("https://vert.example.com") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("Your own VERT instance, or vert.sh. Saved only on this phone.") })
                 OutlinedTextField(vertd, { vertd = it }, label = { Text("Video server (vertd) URL") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
                     supportingText = { Text("Empty = no video conversion. Self-hosted VERT shows its vertd URL in its settings.") })
                 OutlinedTextField(header, { header = it }, label = { Text(if (vert.hasHeader()) "Extra header (saved; type to replace)" else "Extra header (optional)") },

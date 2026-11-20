@@ -13,3 +13,6 @@ dist/
 # Release signing (never commit)
 keystore/
 keystore.properties
+
+# Private-detail patterns for scripts/check-private.sh (local only, never commit)
+.private-patterns
