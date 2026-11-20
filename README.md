@@ -292,8 +292,9 @@ LocalSend-compatible file sharing on the local network. It works with the offici
   so the server deletes its copy.
 - **Images, audio and documents** open in the VERT web app, which converts them inside the browser, so nothing
   is uploaded.
-- **Server:** the default is https://vert.sh with vertd https://vertd.vert.sh (run by the VERT team). There is a preset for
-  **https://vert.example.com**; set its vertd URL there, because self-hosted VERT shows it in its settings. You can add an optional
+- **Server:** the default is https://vert.sh with vertd https://vertd.vert.sh (run by the VERT team). Pick **Custom** to use
+  your own VERT instance: enter its VERT URL and its vertd URL (self-hosted VERT shows the vertd URL in its
+  settings). Both are saved only on your phone. You can add an optional
   extra header (`Name: value`) for a vertd behind an auth proxy. It is stored encrypted and only sent to vertd.
 - VERT and vertd are separate GPL-3.0 projects by the VERT team (https://github.com/VERT-sh). Scrollback
   only talks to their public HTTP API and includes none of their code.

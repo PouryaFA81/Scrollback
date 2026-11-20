@@ -20,12 +20,13 @@ Symfonium, Finamp, NewPipe and TikTok._
 | 0.6 | In-app updates (on tap only), dedicated release key, R8 + ABI splits (~5.7 MB per APK) |
 | 0.7 | SFTP + SMB network storage under Files → Tools, TOFU host-key pinning, streaming into feeds |
 | 0.8 | Notes (Markdown editor + preview, Obsidian-friendly) and Archives (extract zip/tar/gz/bz2/xz/7z, compress to zip); swipe between Library and Music sub-tabs |
-| 0.9 | Convert with VERT: video via vertd (upload → websocket job → download → confirm), other types in the VERT web app; vert.sh default, self-hosted preset |
+| 0.9 | Convert with VERT: video via vertd (upload → websocket job → download → confirm), other types in the VERT web app; vert.sh default, custom self-hosted instance |
 | 0.10 | Office: PDF viewer (swipe, zoom, jump, search), DOCX/XLSX/PPTX viewers via XmlPullParser (no POI, +145 KB), CSV/TSV editor, Open with |
 | 0.11 | Nearby share: LocalSend v2 (multicast + subnet scan, HTTPS self-signed + fingerprint pinning, PIN, quick save), ported from RSend; CSV in Documents; recent strip opens in Scrollback |
 | 0.12 | Watch: Jellyfin movies, shows → seasons → episodes, collections, Continue watching / Next up, details, search; Media3 direct play with HLS-transcode fallback (PlaybackInfo + device profile); audio/subtitle tracks (embedded, external, burn-in); resume and progress reporting; played/favorite sync |
 | 0.14 | Server connections and licensing: own redirect follower (sign-in survives http→https and same-server hops, WebDAV verbs keep method), canonical address at sign-in, Login Flow v2 kept on the working address, per-server alternate address with automatic fallback, Test connection; music "Hide duplicates across servers" (view-only merge, preferred source, Play from…); GPL-3.0-or-later, third-party notices, in-app licenses |
 | 0.13 | Scrollback Player (libVLC 3.7.7): Open with for video/*, Files and feed integration, automatic fallback from Media3, gestures, aspect/zoom, audio/subtitle tracks, external subs, delays, subtitle styling, speed 0.25–4×, A-B repeat, HW/SW toggle, screen lock, PiP, background audio, resume, folder playlist. +20–24 MB per release APK |
+| 0.14.1 | Privacy clean-up: no personal domains or setup details in the repo; VERT server picker is vert.sh or **Custom** (your own VERT/vertd URL, stored only on the device); `scripts/check-private.sh` guard |
 
 ## Phase A: File-manager add-ons (0.6–0.10) ✅
 
@@ -39,7 +40,7 @@ The Files tab gets one **Tools** card (Remote, Notes, Archives, Convert, Office)
 | 0.7.0 ✅ | **SFTP + SMB** | sshj (password or key, host key pinned on first use) and smbj (SMB2/3). Browse, copy both ways, stream into the feeds through the media-source layer. Credentials stay encrypted in the Keystore. SMB reads still need confirming on real Samba/Windows. |
 | 0.8.0 ✅ | **Notes + Archives** (merged) | Markdown/plain-text editor with preview for .md and .txt. Obsidian-friendly: wikilinks, front matter left untouched, autosave. |
 | ~~0.9.0~~ | **Archives**: shipped in 0.8.0 | Zip create/extract; tar, tar.gz and 7z extract (Commons Compress plus XZ). Guards against zip-slip and zip bombs. |
-| 0.9.0 ✅ | **Convert (VERT)** | Video goes through the vertd API (upload, then websocket job, then download). Images, audio and docs open in the VERT web app, which converts them client-side. Default https://vert.sh, with a preset for vert.example.com. |
+| 0.9.0 ✅ | **Convert (VERT)** | Video goes through the vertd API (upload, then websocket job, then download). Images, audio and docs open in the VERT web app, which converts them client-side. Default https://vert.sh; a custom self-hosted VERT/vertd URL can be entered and is stored only on the device. |
 | 0.10.0 ✅ | **Office lite** | PDF via PdfRenderer; text and tables from DOCX/XLSX/PPTX via zip+XML (no POI, to keep the APK small); CSV table editor. |
 
 ## Phase A2: Watch (0.12–0.13)
@@ -137,7 +138,7 @@ Ideas from TikTok, Aves and NewPipe:
 
 ## Phase E: Platform and distribution
 
-1. **Make the repo public.** The license is chosen: GPL-3.0-or-later (since 0.14). The anonymous update check works once it is public.
+1. **Make the repo public.** The license is chosen: GPL-3.0-or-later (since 0.14). Run `scripts/check-private.sh` first; older history may still need a clean-up. The anonymous update check works once it is public.
 2. **F-Droid / IzzyOnDroid** build flavour without MANAGE_EXTERNAL_STORAGE (SAF only), plus reproducible builds.
 3. **Baseline profiles + R8** tuning for startup. Keep the release APK under about 20 MB.
 4. **Localisation.** Persian first (RTL already supported), and Persian calendar dates (Aves added this).
