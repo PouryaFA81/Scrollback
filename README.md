@@ -236,7 +236,7 @@ Every permission in the app's [manifest](app/src/main/AndroidManifest.xml), and 
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Keep music, and Scrollback Player's background audio, playing as a media-playback service. |
 | `FOREGROUND_SERVICE_DATA_SYNC` | Keeps a Nearby share transfer running, with a progress notification, while it is in progress. |
 | `CHANGE_WIFI_MULTICAST_STATE`, `ACCESS_WIFI_STATE` | Let Nearby share find other devices on your Wi-Fi, only while the Nearby share screen is open or a transfer is running. |
-| `ACCESS_LOCAL_NETWORK` | On Android 17 and newer, apps need this to talk to devices on your local network. Scrollback asks the first time you open Nearby share (Android shows it as **Nearby devices**). Once granted, it also covers SFTP, SMB and other servers on your home network. |
+| `ACCESS_LOCAL_NETWORK` | On Android 17 and newer, apps need this to talk to devices on your local network. Scrollback asks, with a short explanation first, when you open Nearby share or add, test or connect to a server on your home network (Nextcloud, Subsonic, Jellyfin, SFTP, SMB, VERT). Android shows it as **Nearby devices**. If you say no, Scrollback tells you how to turn it on. Servers on the internet don't need it. |
 | `POST_NOTIFICATIONS` | Shows the media notification with play, pause and skip controls, and Nearby share progress. Android asks the first time it's needed. |
 | `WAKE_LOCK` | Keeps playback running while the screen is off. |
 | `REQUEST_INSTALL_PACKAGES` | Lets **Settings → Updates** install a new version. Android asks you to allow it the first time, and asks you to confirm every install. |
