@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.player
 
 import android.content.Context
@@ -26,7 +28,7 @@ import java.io.File
  * Local reads skip the cache entirely.
  */
 @OptIn(UnstableApi::class)
-class Playback(private val context: Context, http: OkHttpClient, private val auth: RemoteAuth) {
+class Playback(private val context: Context, http: OkHttpClient, private val auth: RemoteAuth, storage: app.scrollback.remote.fs.RemoteStorage) {
     val cache: SimpleCache by lazy {
         SimpleCache(File(context.cacheDir, "media"), LeastRecentlyUsedCacheEvictor(512L * 1024 * 1024), StandaloneDatabaseProvider(context))
     }
@@ -42,9 +44,19 @@ class Playback(private val context: Context, http: OkHttpClient, private val aut
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
     }
 
+    /** SFTP/SMB (`rfs://`), cached like HTTP media so re-watching doesn't hit the server again. */
+    private val network: DataSource.Factory by lazy {
+        CacheDataSource.Factory()
+            .setCache(cache)
+            .setUpstreamDataSourceFactory { app.scrollback.remote.fs.RemoteFsDataSource(storage) }
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+    }
+
     private val local: DataSource.Factory = DefaultDataSource.Factory(context)
 
-    val dataSourceFactory: DataSource.Factory = DataSource.Factory { Routing(local.createDataSource(), remote.createDataSource(), auth) }
+    val dataSourceFactory: DataSource.Factory = DataSource.Factory {
+        Routing(local.createDataSource(), remote.createDataSource(), network.createDataSource(), auth)
+    }
 
     /** Feed player. Takes audio focus, so background music pauses while a video plays. */
     fun newPlayer(): ExoPlayer = ExoPlayer.Builder(context)
@@ -59,13 +71,24 @@ class Playback(private val context: Context, http: OkHttpClient, private val aut
         .build()
 
     /** Picks the local or remote chain per opened URI. */
-    private class Routing(private val local: DataSource, private val remote: DataSource, private val auth: RemoteAuth) : DataSource {
+    private class Routing(
+        private val local: DataSource,
+        private val remote: DataSource,
+        private val network: DataSource,
+        private val auth: RemoteAuth,
+    ) : DataSource {
         private var current: DataSource? = null
         override fun addTransferListener(transferListener: TransferListener) {
             local.addTransferListener(transferListener); remote.addTransferListener(transferListener)
+            network.addTransferListener(transferListener)
         }
         override fun open(dataSpec: DataSpec): Long {
-            val ds = if (auth.isRemote(dataSpec.uri.toString())) remote else local
+            val u = dataSpec.uri.toString()
+            val ds = when {
+                u.startsWith(app.scrollback.remote.fs.RemotePaths.SCHEME + "://") -> network
+                auth.isRemote(u) -> remote
+                else -> local
+            }
             current = ds
             return ds.open(dataSpec)
         }

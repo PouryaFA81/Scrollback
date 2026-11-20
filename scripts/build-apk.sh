@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pourya FA
 # Builds the debug APK (and the signed release APK when keystore/ exists), copies them to dist/,
 # and keeps timestamped backups in dist/archive/ (never overwrites older ones).
 #   --install   adb-install the debug APK when a device is authorised

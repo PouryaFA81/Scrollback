@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.feature.files
 
 import android.widget.Toast
@@ -28,6 +30,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.AddToPhotos
@@ -41,9 +45,12 @@ import androidx.compose.material.icons.outlined.DriveFileRenameOutline
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.outlined.Transform
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -94,6 +101,14 @@ import kotlinx.coroutines.launch
 
 private val SORTS = listOf("name" to "Name", "date" to "Date modified", "size" to "Size", "type" to "Type")
 
+/** v0.13: videos open in the full player (Scrollback Player); "Open with" in the selection bar reaches other apps. */
+fun isPlayable(n: FileNode): Boolean = !n.isDir && (n.mime.startsWith("video/") || app.scrollback.fullplayer.FullPlayer.isVideoName(n.name))
+
+fun playNodes(ctx: android.content.Context, listing: List<FileNode>, n: FileNode) {
+    val (items, idx) = app.scrollback.fullplayer.FullPlayer.fromNodes(listing, n)
+    app.scrollback.fullplayer.FullPlayer.launch(ctx, items, idx)
+}
+
 /** One action in the floating selection bar. */
 data class BarAction(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val enabled: Boolean = true, val onClick: () -> Unit)
 
@@ -126,7 +141,7 @@ fun SelectionBar(actions: List<BarAction>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
+fun FileBrowserScreen(root: FileNode, onBack: () -> Unit, onOpenNote: (FileNode) -> Unit = {}, onConvert: (FileNode) -> Unit = {}, onOpenDoc: ((FileNode) -> Unit)? = null, onSendNearby: ((List<FileNode>) -> Unit)? = null) {
     val container = LocalContainer.current
     val files = container.files
     val ctx = LocalContext.current
@@ -146,6 +161,8 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
     var renaming by remember { mutableStateOf<FileNode?>(null) }
     var deleting by remember { mutableStateOf<List<FileNode>?>(null) }
     var info by remember { mutableStateOf<FileNode?>(null) }
+    var archiveFor by remember { mutableStateOf<FileNode?>(null) }
+    var compressing by remember { mutableStateOf<List<FileNode>?>(null) }
 
     val listing by produceState<List<FileNode>?>(null, dir.key, refresh) { value = null; value = files.list(dir) }
     val results by produceState<List<FileNode>?>(null, query, dir.key, searching) {
@@ -157,6 +174,23 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
     val grid = rememberLazyGridState()
     val collapsed by grid.collapsedState()
     LaunchedEffect(dir.key) { selection = emptySet() }
+    LaunchedEffect(Unit) { files.errors.collect { Toast.makeText(ctx, it, Toast.LENGTH_LONG).show() } }
+
+    /** Remote files are copied to the cache first so other apps can open or share them. */
+    fun withLocal(nodes: List<FileNode>, then: (List<FileNode>) -> Unit) {
+        if (nodes.none { it.isRemote }) { then(nodes); return }
+        scope.launch {
+            val out = mutableListOf<FileNode>()
+            for (n in nodes) {
+                if (!n.isRemote) { out += n; continue }
+                busy = "Downloading ${n.name}…"
+                val f = files.fetchToCache(n) { p -> busy = "Downloading ${n.name}… ${(p * 100).toInt()}%" }
+                if (f != null) out += FileNode.raw(f).copy(mime = n.mime)
+            }
+            busy = null
+            if (out.isNotEmpty()) then(out)
+        }
+    }
 
     BackHandler(enabled = selection.isNotEmpty() || searching || stack.size > 1) {
         when {
@@ -171,7 +205,14 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
             selection = if (n.key in selection) selection - n.key else selection + n.key
             return
         }
-        if (n.isDir) { searching = false; query = ""; stack = stack + n } else openWith(ctx, n)
+        when {
+            n.isDir -> { searching = false; query = ""; stack = stack + n }
+            app.scrollback.notes.NoteText.isNote(n.name) && n.size < 2_000_000 -> onOpenNote(n)
+            onOpenDoc != null && app.scrollback.office.OfficeFormat.detect(n.name).let { it != null && it != app.scrollback.office.OfficeFormat.TEXT } -> onOpenDoc(n)
+            app.scrollback.files.ArchiveFormat.detect(n.name) != null -> archiveFor = n
+            isPlayable(n) -> playNodes(ctx, shown, n)
+            else -> withLocal(listOf(n)) { openWith(ctx, it.first()) }
+        }
     }
     fun longPress(n: FileNode) { haptics.tick(); selection = selection + n.key }
     fun done(msg: String) { Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show(); refresh++; selection = emptySet() }
@@ -229,13 +270,25 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
                             },
                             BarAction("Rename", Icons.Outlined.DriveFileRenameOutline, enabled = single != null && dir.canWrite) { renaming = single },
                             BarAction("Delete", Icons.Outlined.Delete, enabled = dir.canWrite) { deleting = selectedNodes },
-                            BarAction("Share", Icons.Outlined.Share) { shareNodes(ctx, selectedNodes) },
+                            BarAction("Share", Icons.Outlined.Share) { val sel = selectedNodes; withLocal(sel.filter { !it.isDir }) { shareNodes(ctx, it) } },
+                            *(if (onSendNearby != null) arrayOf(BarAction("Send nearby", Icons.Outlined.WifiTethering, enabled = selectedNodes.any { !it.isDir }) { val sel = selectedNodes.filter { !it.isDir }; selection = emptySet(); onSendNearby(sel) }) else emptyArray()),
+                            BarAction("Compress", Icons.Outlined.FolderZip, enabled = dir.canWrite && busy == null) { compressing = selectedNodes },
+                            BarAction("Play", Icons.Outlined.PlayCircle, enabled = selectedNodes.any(::isPlayable)) {
+                                val sel = selectedNodes.filter(::isPlayable); selection = emptySet(); playNodes(ctx, sel, sel.first())
+                            },
+                            BarAction("Open with", Icons.AutoMirrored.Outlined.OpenInNew, enabled = single != null && !single.isDir) { val n = single!!; selection = emptySet(); withLocal(listOf(n)) { openWith(ctx, it.first()) } },
+                            BarAction("Convert", Icons.Outlined.Transform, enabled = single != null && !single.isDir) { val n = single!!; selection = emptySet(); onConvert(n) },
                             BarAction("Info", Icons.Outlined.Info, enabled = single != null) { info = single },
                             BarAction("Add source", Icons.Outlined.AddToPhotos, enabled = single?.isDir == true) {
                                 val n = single!!
                                 container.appScope.launch {
                                     when (n.kind) {
                                         NodeKind.RAW -> container.library.addFolderSource(SourceType.FILE, n.id, n.name)
+                                        NodeKind.REMOTE -> {
+                                            val acc = container.accounts.get(n.treeUri)
+                                            val t = if (acc?.type == app.scrollback.accounts.AccountType.SMB) SourceType.SMB else SourceType.SFTP
+                                            container.library.addRemoteSource(t, n.id, n.name, n.treeUri.orEmpty())
+                                        }
                                         else -> container.library.addFolderSource(SourceType.SAF_TREE, n.uri.toString(), n.name)
                                     }
                                 }
@@ -337,6 +390,35 @@ fun FileBrowserScreen(root: FileNode, onBack: () -> Unit) {
         )
     }
     info?.let { FileInfoSheet(it) { info = null } }
+    archiveFor?.let { a ->
+        ArchiveActionsDialog(
+            a, canExtractHere = dir.canWrite && busy == null,
+            onExtract = { intoFolder ->
+                archiveFor = null
+                scope.launch {
+                    busy = "Extracting ${a.name}…"
+                    val r = runCatching { files.extract(a, dir, intoFolder) { busy = it } }
+                    busy = null
+                    r.onSuccess { (_, res) -> done("Extracted ${res.files} file${if (res.files == 1) "" else "s"}" + if (res.skipped > 0) " (${res.skipped} skipped)" else "") }
+                        .onFailure { done(extractMessage(it)) }
+                }
+            },
+            onOpenWith = { archiveFor = null; withLocal(listOf(a)) { openWith(ctx, it.first()) } },
+            onDismiss = { archiveFor = null },
+        )
+    }
+    compressing?.let { nodes ->
+        val suggested = (nodes.singleOrNull()?.name?.let { if (it.contains('.') && !nodes[0].isDir) it.substringBeforeLast('.') else it } ?: dir.name.ifBlank { "Archive" }) + ".zip"
+        TextInputDialog("Compress ${nodes.size} item${if (nodes.size == 1) "" else "s"}", suggested, "Create zip", onConfirm = { name ->
+            if (!FileNames.isValid(name)) { Toast.makeText(ctx, "Invalid name", Toast.LENGTH_SHORT).show() }
+            else scope.launch {
+                busy = "Compressing…"
+                val r = runCatching { files.compress(nodes, dir, name) { busy = it } }
+                busy = null
+                done(if (r.getOrNull() != null) "Created ${r.getOrNull()!!.name}" else "Couldn't create the zip" + (r.exceptionOrNull()?.message?.let { ": $it" } ?: ""))
+            }
+        }, onDismiss = { compressing = null })
+    }
 }
 
 fun LazyGridScope.full(content: @Composable () -> Unit) = item(span = { GridItemSpan(maxLineSpan) }) { content() }

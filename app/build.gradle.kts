@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 import java.util.Properties
 
 plugins {
@@ -22,8 +24,8 @@ android {
         applicationId = "app.scrollback"
         minSdk = 33
         targetSdk = 37
-        versionCode = 6
-        versionName = "0.6.0"
+        versionCode = 14
+        versionName = "0.14.0"
     }
 
     signingConfigs {
@@ -65,6 +67,15 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    packaging {
+        // v0.13 libVLC: ARM only (x86 phones are practically gone; the player shows a notice there),
+        // and compressed in the APK (extracted on install) so downloads stay as small as possible.
+        jniLibs.excludes += setOf("lib/x86/**", "lib/x86_64/**")
+        jniLibs.useLegacyPackaging = true
+        resources.pickFirsts += setOf("META-INF/LICENSE.md", "META-INF/NOTICE.md", "META-INF/LICENSE", "META-INF/NOTICE")
+        resources.excludes += setOf("META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/BCKEY.*", "META-INF/BC*.SF", "META-INF/BC*.DSA", "META-INF/INDEX.LIST", "META-INF/DEPENDENCIES")
+    }
+
     buildFeatures {
         compose = true
     }
@@ -94,6 +105,7 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    implementation(libs.media3.hls) // v0.12: Jellyfin HLS transcoding
     implementation(libs.media3.datasource.okhttp)
     implementation(libs.media3.session)
     implementation(libs.coroutines.guava)
@@ -108,10 +120,21 @@ dependencies {
     implementation(libs.haze)
     implementation(libs.haze.blur)
     implementation(libs.coroutines.android)
+    // v0.7: SFTP + SMB2/3 network storage
+    implementation(libs.sshj)
+    implementation(libs.smbj)
+    implementation(libs.bouncycastle.prov)
+    implementation(libs.bouncycastle.pkix)
+    implementation(libs.commons.compress)
+    implementation(libs.xz)
+    implementation(libs.nanohttpd)
+    // v0.13: full movie player (LGPL-2.1+, dynamically linked .so files)
+    implementation(libs.libvlc)
     debugImplementation(libs.compose.ui.tooling)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.org.json)
+    testImplementation(libs.kxml2)
     testImplementation(libs.okhttp.mockwebserver)
 }

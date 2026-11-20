@@ -1,7 +1,10 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.feature.library
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +39,7 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
+import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -60,6 +64,7 @@ import app.scrollback.data.db.MediaEntity
 import app.scrollback.data.prefs.Settings
 import app.scrollback.feature.feed.FeedSpec
 import app.scrollback.ui.LocalContainer
+import app.scrollback.ui.components.swipeTabs
 import app.scrollback.ui.components.ConfirmDialog
 import app.scrollback.ui.components.EmptyState
 import app.scrollback.ui.components.FloatingNavReserve
@@ -87,6 +92,7 @@ fun LibraryScreen(
     onOpen: (FeedSpec, Long) -> Unit,
     onOpenPlaylist: (Long) -> Unit,
     onOpenDuplicates: () -> Unit = {},
+    onOpenWatch: () -> Unit = {},
 ) {
     val container = LocalContainer.current
     val repo = container.library
@@ -118,7 +124,7 @@ fun LibraryScreen(
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             state = grid,
-            modifier = mod,
+            modifier = mod.swipeTabs(SEGMENTS.size, segment) { haptics.tick(); segment = it },
             contentPadding = PaddingValues(start = SbSpace.m, end = SbSpace.m, bottom = bottom),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -143,6 +149,15 @@ fun LibraryScreen(
                         onClick = { if (showHidden) onOpen(FeedSpec.Hidden, -1) else askPin = true },
                     )
                 }
+            }
+            full {
+                ListRow(
+                    title = "Watch",
+                    subtitle = "Movies and shows from Jellyfin",
+                    leading = { Icon(Icons.Outlined.Movie, null, tint = SbColors.TextPrimary) },
+                    onClick = onOpenWatch,
+                    modifier = Modifier.padding(bottom = SbSpace.xs),
+                )
             }
             full {
                 ListRow(
@@ -358,13 +373,20 @@ fun ListRow(
     trailing: @Composable (() -> Unit)? = null,
     below: @Composable (() -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier
             .fillMaxWidth()
             .clip(SbRadius.Card)
             .background(SbColors.Surface)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                when {
+                    onLongClick != null -> Modifier.combinedClickable(onClick = { onClick?.invoke() }, onLongClick = onLongClick)
+                    onClick != null -> Modifier.clickable(onClick = onClick)
+                    else -> Modifier
+                }
+            )
             .padding(horizontal = SbSpace.l, vertical = SbSpace.m),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -374,7 +396,7 @@ fun ListRow(
         }
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, color = SbColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = SbColors.TextSecondary, maxLines = 1)
+            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = SbColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             below?.invoke()
         }
         if (trailing != null) {
