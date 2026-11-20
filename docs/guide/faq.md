@@ -89,7 +89,7 @@ the VPN as the server's **alternate address**. **Test connection** shows which a
 
 ### Every song shows up twice.
 
-That happens when two servers share one music folder, for example Nextcloud Music and Navidrome.
+That happens when two servers share one music folder.
 Turn on **Hide duplicates across servers** in **Settings → Music**. Nothing is deleted. See
 [Hide duplicates across servers](music-servers.md#hide-duplicates-across-servers).
 

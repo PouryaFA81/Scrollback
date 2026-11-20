@@ -101,8 +101,8 @@ connection**. See [Server connections](server-connections.md).
 
 ## Hide duplicates across servers
 
-If the same songs are on more than one server, for example when Nextcloud Music and Navidrome
-share one music folder, every song shows up twice. To show each song once:
+If the same songs are on more than one server, for example when two music servers read the same
+music folder, every song shows up twice. To show each song once:
 
 1. Open **Settings** and turn on **Hide duplicates across servers** under **Music**. The same
    switch is also on the **Servers** screen, in the **Music from several sources** card.

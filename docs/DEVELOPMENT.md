@@ -214,7 +214,7 @@ Settings (folders, servers/accounts, playback, privacy, music) open from the gea
   full player has artwork, seek bar, like and add-to-playlist. Videos take audio focus, so music
   pauses while a feed plays.
 - **Hide duplicates across servers (v0.14,** `core/music/MusicMerge.kt`**):** when one music folder
-  is served by several servers (for example Nextcloud Music and Navidrome), the toggle in Settings →
+  is served by several servers (for example a Subsonic server and a Jellyfin server), the toggle in Settings →
   Music or Settings → Servers shows each song once. Songs from *different sources* match on
   normalised title (accents and punctuation folded, a leading "the" dropped; the file name without
   a track number when there's no title tag), compatible artist (same main artist, or missing /
