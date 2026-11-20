@@ -1,0 +1,52 @@
+name: Feature request
+description: Suggest an idea or improvement for Scrollback.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Please check the [roadmap](https://github.com/PouryaFA81/Scrollback#roadmap) and existing issues first; some features are already planned.
+
+        Scrollback is offline-first and private by default, with no tracking or analytics. Ideas that fit those goals are the easiest to take on.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe what you're trying to do and what gets in the way today.
+      placeholder: "I often want to ..., but ..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to happen?
+      description: Describe the feature as you imagine it.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
+      description: Other ways to solve it, or apps that do it well.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Feeds and playback
+        - Pictures
+        - Library, playlists, notes and tags
+        - Privacy (PIN, hidden items)
+        - Duplicate finder
+        - File manager
+        - Nextcloud
+        - Music and music servers
+        - Something new
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Mock-ups, screenshots or links.
