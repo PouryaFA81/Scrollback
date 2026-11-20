@@ -83,13 +83,7 @@ offline without them.
 
 ## Screenshots
 
-| Saved feed | Pictures | Settings |
-|---|---|---|
-| <img src="docs/screens/saved-feed.png" alt="Saved feed, empty state with an Add folders button" width="240"> | <img src="docs/screens/pictures.png" alt="Pictures tab, empty state" width="240"> | <img src="docs/screens/settings.png" alt="Settings screen with Library, Playback, Privacy and About sections" width="240"> |
-
-> These screenshots show an **earlier build (v0.1)**, before the v0.5 navigation rework. The bottom
-> bar now has Feed, Pictures, Music, Files and Library, and Settings opens from the gear at the top.
-> New screenshots are coming soon.
+New screenshots of the current version are coming soon.
 
 ## Install
 
