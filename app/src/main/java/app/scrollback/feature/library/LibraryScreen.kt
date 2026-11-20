@@ -396,7 +396,7 @@ fun ListRow(
         }
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, color = SbColors.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = SbColors.TextSecondary, maxLines = 1)
+            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = SbColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             below?.invoke()
         }
         if (trailing != null) {

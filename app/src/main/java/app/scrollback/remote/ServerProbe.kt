@@ -11,6 +11,7 @@ import java.net.ConnectException
 import java.net.NoRouteToHostException
 import java.net.ProtocolException
 import java.net.SocketTimeoutException
+import java.util.concurrent.TimeUnit
 import java.net.UnknownHostException
 import java.net.UnknownServiceException
 import javax.net.ssl.SSLException
@@ -45,6 +46,13 @@ object ServerProbe {
         val problem: String?,
     )
 
+    /** A probe should answer in seconds: a VPN that drops packets would otherwise hit the 60 s read timeout. */
+    private fun quick(http: OkHttpClient): OkHttpClient = http.newBuilder()
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(12, TimeUnit.SECONDS)
+        .callTimeout(20, TimeUnit.SECONDS)
+        .build()
+
     fun probe(http: OkHttpClient, kind: ProbeKind, base: String): Result {
         val address = base.trimEnd('/')
         val trace = RedirectTrace()
@@ -56,7 +64,7 @@ object ServerProbe {
             .tag(DirectAddress::class.java, DirectAddress)
             .build()
         return try {
-            http.newCall(req).execute().use { r ->
+            quick(http).newCall(req).execute().use { r ->
                 val body = runCatching { r.peekBody(256 * 1024).string() }.getOrDefault("")
                 val info = recognise(kind, r.code, body)
                 val finalBase = baseFrom(Redirects.safe(r.request.url), kind.path)
@@ -118,6 +126,7 @@ object Explain {
             is NoRouteToHostException -> "There is no route to $where from this network. It is probably only reachable at home or over your VPN."
             is ConnectException -> "Nothing answered at $where. The server may be down, or only reachable on another network (LAN or VPN)."
             is SocketTimeoutException -> "$where didn't answer in time. A VPN or firewall may be dropping the connection."
+            is java.io.InterruptedIOException -> "$where didn't answer in time. A VPN or firewall may be dropping the connection."
             is SSLPeerUnverifiedException -> "The HTTPS certificate isn't valid for $host. Use the name the certificate was issued for."
             is SSLHandshakeException -> "The secure (HTTPS) connection to $host failed: the certificate isn't trusted by Android, or the server doesn't speak HTTPS on port $port."
             is SSLException -> "The secure (HTTPS) connection to $host broke off. Try http:// for a LAN-only address, or check the proxy."
