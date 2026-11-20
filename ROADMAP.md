@@ -85,7 +85,13 @@ especially over VPN, and a Nextcloud Music and a Navidrome often share one music
 - **Alternate address + Test connection** per server. Login Flow v2 URLs stay on the address that worked.
 - **Hide duplicates across servers:** a view-level merge with a preferred-source order. Nothing is deleted anywhere.
 - **License:** GPL-3.0-or-later, SPDX headers, THIRD_PARTY_NOTICES.md and Settings → About → Open-source licenses.
-- Still to confirm: a sign-in and browse over a full-tunnel VPN with the new fallback.
+- **Checked on the A54 (2026-11-20):** a Jellyfin and a Navidrome library that share one music folder are
+  indexed, and with Hide duplicates on each shared song shows once with a "2 sources" tag.
+  All six codec clips play in Scrollback Player (H.264, HEVC, VP9 on Exynos hardware decoders; AV1 and MPEG-2 in software),
+  and ASS subtitles render, both embedded and sidecar.
+- Still to confirm: sign-in and browsing over a full-tunnel VPN. A VPN that routes even LAN traffic through the
+  tunnel can't reach a home server, so Test connection times out there. It needs a LAN bypass / split tunnel in the
+  VPN app plus the server's LAN address as the alternate address, or a retest with the VPN off.
 
 ## Phase A3: Polish (0.15)
 
@@ -95,6 +101,8 @@ especially over VPN, and a Nextcloud Music and a Navidrome often share one music
    the bottom nav and image zoom, where it would fight existing gestures.
 2. **Size discipline.** R8 plus resource shrinking, ABI splits (arm64-v8a, armeabi-v7a, universal) since
    0.6.0, and a per-release size table. Native players (libVLC) go in per-ABI APKs only.
+3. **Player decoder label.** The top bar's "HW" shows the setting, not the decoder in use: AV1 and MPEG-2
+   fall back to software on the A54 but still say HW. Read the real decoder from libVLC and show HW or SW.
 
 ## Phase B: Feed and gallery quality (next)
 
