@@ -418,9 +418,14 @@ TrueHD audio and ASS/SSA subtitles with their own styling (libass).
 - **Playback:** speeds 0.25× to 4×, A-B repeat, previous/next, resume, HW/SW decoding toggle
   (hardware by default), screen lock, picture-in-picture, background audio with a media
   notification (`FullPlayerService`).
-- **Known limit:** the top bar's HW/SW label shows the setting, not the decoder actually in use
-  (planned fix in 0.15). x86/x86_64 libraries are left out; on those devices the player shows a
-  notice.
+- **Decoder label (0.15):** the top bar's HW/SW comes from `DecoderInfo`: libVLC's video fourcc is
+  mapped to a MediaCodec MIME type and checked against the phone's hardware decoders (format and
+  size), so formats libVLC decodes in software (MPEG-2, VC-1, AV1 without an AV1 chip) show SW.
+- **x86:** x86/x86_64 libraries are left out of release APKs; on those devices the player shows a
+  notice. For an x86_64 emulator (screenshots, UI testing), build with
+  `./gradlew assembleDebug -Psb.x86=true`, which keeps x86_64 and adds an `x86_64` split. The
+  emulator's GPU-backed H.264 decoder often fails under SwiftShader, so use MPEG-4 Part 2 or VP9
+  demo clips there.
 - **Why libVLC:** a published Maven AAR (no NDK build), libass built in, MediaCodec and FFmpeg
   decoding, A-B repeat and delays built in. libmpv was the alternative. Media3 stays for the feed,
   Watch and music because it is lighter and starts faster.

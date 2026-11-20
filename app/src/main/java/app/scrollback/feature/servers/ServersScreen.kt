@@ -151,7 +151,7 @@ fun ServersScreen(onBack: () -> Unit, onBrowseNextcloud: (String) -> Unit) {
                     subtitle = when (t) {
                         AccountType.NEXTCLOUD -> "Videos, pictures and music over WebDAV + library sync"
                         AccountType.SUBSONIC -> "Navidrome, Nextcloud Music, Airsonic, Gonic…"
-                        AccountType.JELLYFIN -> "Music libraries (video later)"
+                        AccountType.JELLYFIN -> "Music, plus movies and shows in Library → Watch"
                         else -> "Files → Tools → Network storage"
                     },
                     icon = if (t == AccountType.NEXTCLOUD) Icons.Outlined.Cloud else Icons.Outlined.LibraryMusic,

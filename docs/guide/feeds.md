@@ -19,6 +19,8 @@ In **Saved**, a folder chip (**All folders ▾**) sits under the top bar. Tap it
 folders**, one of your folders, or one of its subfolders. The feed then plays only that folder, in
 saved order, newest or oldest first. Scrollback remembers your choice.
 
+<p align="center"><img src="../assets/screens/feed-folder-chooser.webp" width="240" alt="The Saved feed's folder chooser, listing All folders, a source folder and its subfolders"></p>
+
 ### The feed keeps your place
 
 Random and Saved each remember where you were: the video you were on and how far into it you got.
@@ -58,6 +60,12 @@ The buttons in the top-right corner of the feed control playback:
 Auto scroll waits while you're touching the screen, holding for 2× or have a sheet (like Notes or
 Info) open, and carries on when you let go or close it. It's off by default. You can also turn it
 on, and pick the picture time, in **Settings → Playback**.
+
+<p align="center">
+  <img src="../assets/screens/feed-playback-menu.webp" width="240" alt="The feed's playback menu with Auto scroll switched on and the picture time set to 5 seconds">
+  &nbsp;
+  <img src="../assets/screens/feed-hold-2x.webp" width="240" alt="Holding a video in the feed: a 2× pill shows at the top">
+</p>
 
 ### Keep the screen on
 

@@ -70,6 +70,8 @@ like a home server, a NAS or a Jellyfin box at home. Scrollback asks for it when
 Scrollback first explains why, then Android shows its own **Allow** dialog. Servers on the internet
 don't need this permission.
 
+<p align="center"><img src="../assets/screens/local-network-prompt.webp" width="240" alt="Scrollback explains why it needs local network access before Android's permission dialog"></p>
+
 If you choose **Not now** or **Don't allow**, servers on your home network can't be reached, and
 Scrollback tells you so instead of failing quietly. To turn it on later, open **Settings → Apps →
 Scrollback → Permissions → Nearby devices** and allow it. Nearby share uses the same permission.

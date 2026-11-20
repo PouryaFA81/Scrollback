@@ -54,24 +54,20 @@ phone.
 
 ## Screenshots
 
-<!-- SCREENSHOTS ON HOLD: new screenshots are coming. When they are ready, put them in docs/assets/screens/
-     (feed, pictures, music, files, library, settings-updates; PNG or WebP, under ~300 KB, same size)
-     and swap each placeholder src below for the real file. -->
-
 <table align="center">
   <tr>
-    <td align="center"><img src="docs/assets/placeholders/screen-feed.svg" width="200" alt="Placeholder: Feed screenshot coming soon"><br><sub><b>Feed</b> · Random and Saved</sub></td>
-    <td align="center"><img src="docs/assets/placeholders/screen-pictures.svg" width="200" alt="Placeholder: Pictures screenshot coming soon"><br><sub><b>Pictures</b> · grid and viewer</sub></td>
-    <td align="center"><img src="docs/assets/placeholders/screen-music.svg" width="200" alt="Placeholder: Music screenshot coming soon"><br><sub><b>Music</b> · library and player</sub></td>
+    <td align="center"><img src="docs/assets/screens/feed.webp" width="200" alt="Feed screen"><br><sub><b>Feed</b> · Random and Saved, one folder at a time</sub></td>
+    <td align="center"><img src="docs/assets/screens/pictures.webp" width="200" alt="Pictures screen"><br><sub><b>Pictures</b> · grid and viewer</sub></td>
+    <td align="center"><img src="docs/assets/screens/music.webp" width="200" alt="Music screen"><br><sub><b>Music</b> · library and player</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/assets/placeholders/screen-files.svg" width="200" alt="Placeholder: Files screenshot coming soon"><br><sub><b>Files</b> · built-in file manager</sub></td>
-    <td align="center"><img src="docs/assets/placeholders/screen-library.svg" width="200" alt="Placeholder: Library screenshot coming soon"><br><sub><b>Library</b> · likes, playlists, search</sub></td>
-    <td align="center"><img src="docs/assets/placeholders/screen-settings-updates.svg" width="200" alt="Placeholder: Settings and Updates screenshot coming soon"><br><sub><b>Settings</b> · Updates</sub></td>
+    <td align="center"><img src="docs/assets/screens/files.webp" width="200" alt="Files screen"><br><sub><b>Files</b> · built-in file manager</sub></td>
+    <td align="center"><img src="docs/assets/screens/library.webp" width="200" alt="Library screen"><br><sub><b>Library</b> · likes, playlists, history, search</sub></td>
+    <td align="center"><img src="docs/assets/screens/settings-updates.webp" width="200" alt="Settings screen"><br><sub><b>Settings</b> · playback, privacy, updates</sub></td>
   </tr>
 </table>
 
-<p align="center"><sub>Screenshots of the current version are coming soon.</sub></p>
+<p align="center"><sub>Scrollback v0.15.0 with demo videos, pictures and songs. More in the <a href="docs/guide/README.md">user guide</a>.</sub></p>
 
 ## Features
 
