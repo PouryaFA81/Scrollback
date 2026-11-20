@@ -18,10 +18,11 @@ user-facing docs, see the [README](../README.md) and the [user guide](guide/READ
 ## Build and test
 
 ```bash
-./scripts/build-apk.sh            # assembleDebug, copy to dist/scrollback-debug.apk, keep a timestamped copy in dist/archive/
-./scripts/build-apk.sh --install  # same, then `adb install -r` if an authorized device is connected
-./gradlew assembleDebug           # plain Gradle; output: app/build/outputs/apk/debug/app-debug.apk
-./gradlew testDebugUnitTest lint  # JVM unit tests (app/src/test) and Android lint
+./scripts/build-apk.sh              # debug + signed release splits → dist/ and dist/archive/ (timestamped)
+./scripts/build-apk.sh --install    # same, then adb install (debug + arm64-v8a release)
+./scripts/build-apk.sh --no-release # debug only (fast)
+./scripts/publish-release.sh v0.6.0 # GitHub Release for a pushed tag, with all APKs + SHA256SUMS
+./gradlew testDebugUnitTest lint    # JVM unit tests (app/src/test) and Android lint
 ```
 
 - `dist/` is git-ignored. `build-apk.sh` never overwrites older archives; it reads the version from
@@ -29,8 +30,32 @@ user-facing docs, see the [README](../README.md) and the [user guide](guide/READ
 - Application id: `app.scrollback` (debug builds use the suffix `.debug`, so `app.scrollback.debug`,
   and the version name gets `-debug`).
 - `minSdk` 33 (Android 13), `targetSdk` 37, compile SDK 37.
-- The release build type enables R8 minification, but there is **no release signing config yet**,
-  so only debug APKs are produced today.
+- **ABI splits:** every build produces `arm64-v8a`, `armeabi-v7a` and `universal` APKs. For debug,
+  only the universal APK is kept in `dist/`.
+- **Release signing:** release APKs are signed from `keystore/` (git-ignored: `release.jks` +
+  `keystore.properties`; never committed or printed). Without it, `assembleRelease` still builds,
+  just unsigned, and `build-apk.sh` skips the release build. Debug APKs use the build machine's
+  debug key. **Back up `keystore/`**: if it is lost, future release updates can't install over
+  existing release installs.
+- The release build uses R8 minification plus resource shrinking. The debug APK is much larger
+  because nothing is stripped (for example the whole material-icons-extended set).
+- **Each GitHub Release** attaches `scrollback-<ver>-arm64-v8a-release.apk`,
+  `-armeabi-v7a-release.apk`, `-universal-release.apk`, `-universal-debug.apk` and `SHA256SUMS`.
+
+### In-app updates (v0.6)
+
+- `update/Updater.kt` + `feature/settings/UpdatesSection.kt`. It runs only when the user taps
+  **Check for update**: no background polling, no scheduled job.
+- Reads `https://api.github.com/repos/PouryaFA81/Scrollback/releases/latest` and picks the asset
+  with `GitHubReleases.pickApk`: for release builds the first `-<abi>-release.apk` in
+  `Build.SUPPORTED_ABIS` order, then `-universal-release.apk`; for debug builds
+  `-universal-debug.apk`. Version comparison is in `AppVersion` (unit-tested in `UpdateLogicTest`).
+- Before installing, it checks that the package name and signing certificates of the downloaded APK
+  match the installed app, then installs through `PackageInstaller` (`REQUEST_INSTALL_PACKAGES`;
+  Android asks the user to confirm).
+- While the repo is private, the anonymous API returns 404. An optional fine-grained token
+  (read-only Contents) is stored AES-GCM encrypted with an Android Keystore key in
+  `CredentialStore` and only sent to api.github.com.
 
 ## Stack
 
@@ -195,5 +220,6 @@ system toggle only if they opt in. Without it everything uses SAF folder grants.
 4. **Phase 4 — v0.4.0:** music player on a Media3 `MediaSessionService`, reusing folders, likes,
    playlists and tags; Subsonic/OpenSubsonic and Jellyfin clients; optional tab toggled in Settings.
 5. **v0.5.0:** navigation rework (five tabs, Settings behind the gear).
+6. **v0.6.0:** in-app updates, signed release builds, ABI splits and [ROADMAP.md](../ROADMAP.md).
 
 No third-party code is copied; SnapReel (MIT) was only a design reference.

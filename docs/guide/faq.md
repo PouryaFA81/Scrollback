@@ -5,7 +5,8 @@
 ### Does Scrollback need an internet connection or an account?
 
 No. Everything except the optional servers works offline, with no account. The internet permission
-is only used for servers you add yourself (Nextcloud, Subsonic / OpenSubsonic, Jellyfin).
+is only used for servers you add yourself (Nextcloud, Subsonic / OpenSubsonic, Jellyfin) and for
+**Check for update**, which contacts GitHub only when you tap it.
 
 ### Does Scrollback track me or show ads?
 
@@ -17,8 +18,10 @@ Android 13 and newer.
 
 ### Where can I download the APK?
 
-**APK downloads on the Releases page: coming soon.** For now, build a debug APK and install it with
-adb, as described in the [README](../../README.md#install).
+From the [latest release](https://github.com/PouryaFA81/Scrollback/releases/latest) on GitHub. Pick
+**arm64-v8a** for most phones, **armeabi-v7a** for older 32-bit phones, or **universal** if you're
+not sure. See the [README](../../README.md#download) for details. The repository is private for now,
+so the link works only for people with access until it goes public.
 
 ### Why does Scrollback mention "All files access"?
 
@@ -80,14 +83,19 @@ They're new. Nextcloud, Subsonic / OpenSubsonic and Jellyfin support arrived in 
 are still in early testing. Your feedback helps a lot:
 [open an issue](https://github.com/PouryaFA81/Scrollback/issues/new/choose).
 
-### Can Scrollback convert files or update itself?
+### Can Scrollback update itself?
 
-Not yet. [File conversion with VERT](file-conversion.md) and [in-app updates](updates.md) are both
-**Coming soon**.
+Yes, since v0.6.0. Open **Settings → Updates → Check for update**. It only checks when you tap. See
+[Updating Scrollback](updates.md).
+
+### Can Scrollback convert files?
+
+Not yet. [File conversion with VERT](file-conversion.md) is **Coming soon**.
 
 ### Is it on F-Droid or Google Play?
 
-Not yet. A version suitable for Google Play, without All files access, is on the roadmap.
+Not yet. An F-Droid / IzzyOnDroid build without All files access is on the
+[roadmap](../../ROADMAP.md).
 
 ### What license is Scrollback under?
 

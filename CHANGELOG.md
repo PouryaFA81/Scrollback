@@ -11,13 +11,43 @@ Ready-to-paste release notes for each version are in [docs/releases](docs/releas
 
 ### Coming soon
 
-- APK downloads on the Releases page, with signed release builds
-- Jellyfin videos in the feeds
-- Scrobbling for Subsonic servers
-- Lyrics
-- A Google Play-friendly version without All files access
-- File conversion with VERT
-- In-app updates
+See [ROADMAP.md](ROADMAP.md) for the full plan. Next up:
+
+- SFTP and SMB (0.7.0)
+- Notes: a Markdown and plain-text editor (0.8.0)
+- Archives: zip, tar and 7z (0.9.0)
+- File conversion with VERT (0.10.0)
+- Office lite: PDF, DOCX, XLSX, PPTX and CSV (0.11.0)
+- A full movie player (0.12.0) and Jellyfin video (0.13.0)
+
+## [0.6.0] - 2026-11-19
+
+### Added
+
+- **In-app updates.** **Settings → Updates → Check for update** looks for a new version on GitHub
+  Releases, but only when you tap it. There are no background checks.
+  - Picks the APK that matches your phone's processor.
+  - Checks that the download is Scrollback and is signed with the same key before installing.
+  - Installs through Android, which asks you to confirm.
+- **Optional GitHub token** under **Settings → Updates**, needed only while the repository is
+  private. It is encrypted on your phone and only sent to GitHub's API.
+- **Signed release APKs** on the [Releases page](https://github.com/PouryaFA81/Scrollback/releases):
+  **arm64-v8a**, **armeabi-v7a** and **universal**, plus a universal debug APK and a `SHA256SUMS`
+  file to check your download.
+- **[Roadmap](ROADMAP.md)** with the planned versions in order of priority.
+
+### Changed
+
+- Release APKs are much smaller than debug builds, because unused code and resources are removed.
+- **Settings → About** now reads: "Offline-first and private. Nothing leaves this device unless you
+  add a server or tap Check for update."
+
+### Notes
+
+- New permission: **Install unknown apps** (`REQUEST_INSTALL_PACKAGES`), used only to install
+  updates you ask for.
+- Release builds use the app id `app.scrollback`; debug builds use `app.scrollback.debug`. They are
+  separate apps with separate data, so installing the release APK doesn't replace a debug install.
 
 ## [0.5.0] - 2026-11-19
 
@@ -119,7 +149,8 @@ First version. This release was not tagged in the repository.
   confirm.
 - Works completely offline: this version had no internet permission.
 
-[Unreleased]: https://github.com/PouryaFA81/Scrollback/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/PouryaFA81/Scrollback/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/PouryaFA81/Scrollback/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/PouryaFA81/Scrollback/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/PouryaFA81/Scrollback/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/PouryaFA81/Scrollback/compare/v0.2.0...v0.3.0

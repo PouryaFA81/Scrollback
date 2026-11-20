@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56" role="img" aria-label="Self-hosted music servers icon">
+<title>Self-hosted music servers</title>
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.10"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient></defs>
+<rect x="0.5" y="0.5" width="55" height="55" rx="16" fill="#000000"/>
+<rect x="0.5" y="0.5" width="55" height="55" rx="16" fill="url(#g)" stroke="#FFFFFF" stroke-opacity="0.16"/>
+<g transform="translate(16,16)" fill="none" stroke="#F2F2F2" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="7" rx="2"/><rect x="3.5" y="13" width="17" height="7" rx="2"/><path d="M11 7.5h6M11 16.5h6"/><circle cx="7.5" cy="7.5" r=".9" fill="#F2F2F2"/><circle cx="7.5" cy="16.5" r=".9" fill="#F2F2F2"/></g>
+</svg>

@@ -1,10 +1,10 @@
 # Scrollback user guide
 
 Welcome! This guide walks you through everything Scrollback can do today, screen by screen. It
-describes **v0.5.0**.
+describes **v0.6.0**.
 
 > Scrollback is young. The file manager, Nextcloud, the music player and the music-server
-> connections (added in v0.2 to v0.5) are new and still in early testing. If something does not
+> connections (added in v0.2 to v0.5) and in-app updates (v0.6) are new and still in early testing. If something does not
 > work the way this guide says, please
 > [open a bug report](https://github.com/PouryaFA81/Scrollback/issues/new/choose).
 
@@ -35,5 +35,5 @@ Scrollback has up to five tabs at the bottom of the screen:
 9. [Nextcloud](nextcloud.md)
 10. [Music and music servers](music-servers.md)
 11. [File conversion with VERT](file-conversion.md) (**Coming soon**)
-12. [Updating Scrollback](updates.md) (in-app updates **Coming soon**)
+12. [Updating Scrollback](updates.md)
 13. [FAQ](faq.md)
