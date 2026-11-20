@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.feature.music
 
 import android.Manifest
@@ -222,7 +224,11 @@ fun LazyListScope.songRows(songs: List<MediaEntity>, onPlay: (Int) -> Unit, onMo
 @Composable
 fun SongRow(m: MediaEntity, onClick: () -> Unit, onMore: () -> Unit) {
     val current by LocalContainer.current.music.state.collectAsStateWithLifecycle()
-    val playing = current.currentId == m.id
+    val groups by LocalContainer.current.library.musicGroups.collectAsStateWithLifecycle()
+    val copies = groups.copiesOf(m.id)
+    var playFrom by remember { mutableStateOf(false) }
+    if (playFrom) PlayFromSheet(m, onDismiss = { playFrom = false })
+    val playing = current.currentId == m.id || copies.any { it.id == current.currentId }
     ListRow(
         title = m.songTitle,
         subtitle = buildString {
@@ -239,12 +245,46 @@ fun SongRow(m: MediaEntity, onClick: () -> Unit, onMore: () -> Unit) {
         },
         trailing = {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (copies.size > 1) {
+                    Text(
+                        "${copies.size} sources", style = MaterialTheme.typography.labelSmall, color = SbColors.TextTertiary,
+                        modifier = Modifier.clip(RoundedCornerShape(50)).background(SbColors.SurfaceHigh).padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                }
                 if (m.liked) Icon(Icons.Outlined.Favorite, "Liked", tint = SbColors.Like, modifier = Modifier.size(16.dp))
                 IconButton(onClick = onMore) { Icon(Icons.Outlined.MoreVert, "More", tint = SbColors.TextSecondary) }
             }
         },
         onClick = onClick,
+        onLongClick = if (copies.size > 1) ({ playFrom = true }) else null,
     )
+}
+
+/** "Play from…": pick which copy of a merged song to play (v0.14 hide duplicates). */
+@Composable
+fun PlayFromSheet(m: MediaEntity, onDismiss: () -> Unit) {
+    val container = LocalContainer.current
+    val groups by container.library.musicGroups.collectAsStateWithLifecycle()
+    val names by remember { container.library.sourceNames() }.collectAsStateWithLifecycle(emptyMap())
+    val copies = groups.copiesOf(m.id)
+    GlassSheet(onDismiss) { close ->
+        SheetTitle("Play from…")
+        Text(m.songTitle, color = SbColors.TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = SbSpace.m))
+        copies.forEachIndexed { i, c ->
+            SettingsRow(
+                names[c.sourceId]?.removePrefix("♫ ") ?: "Source ${c.sourceId}",
+                subtitle = listOfNotNull(
+                    c.name.substringAfterLast('.', "").uppercase().takeIf { it.isNotEmpty() && it.length <= 5 },
+                    c.durationMs.takeIf { it > 0 }?.let { Fmt.duration(it) },
+                    if (i == 0) "preferred" else null,
+                    if (c.liked) "liked" else null,
+                ).joinToString(" · "),
+                icon = Icons.Outlined.PlayArrow,
+                onClick = { container.music.play(listOf(c), 0); close() },
+            )
+        }
+    }
 }
 
 @Composable
@@ -267,7 +307,9 @@ fun SongActionsSheet(m: MediaEntity, onDismiss: () -> Unit) {
     val container = LocalContainer.current
     val haptics = rememberHaptics()
     var playlist by remember { mutableStateOf(false) }
+    var playFrom by remember { mutableStateOf(false) }
     if (playlist) { PlaylistSheet(m, onDismiss = { playlist = false; onDismiss() }); return }
+    if (playFrom) { PlayFromSheet(m, onDismiss = { playFrom = false; onDismiss() }); return }
     GlassSheet(onDismiss) { close ->
         SheetTitle(m.songTitle)
         Text(m.songSubtitle, color = SbColors.TextSecondary, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = SbSpace.m))
@@ -275,6 +317,9 @@ fun SongActionsSheet(m: MediaEntity, onDismiss: () -> Unit) {
             haptics.confirm(); container.appScope.launch { container.library.setLiked(m.id, !m.liked) }; close()
         })
         SettingsRow("Play next", icon = Icons.Outlined.SkipNext, onClick = { container.music.playNext(m); close() })
+        val groups by container.library.musicGroups.collectAsStateWithLifecycle()
+        val copies = groups.copiesOf(m.id)
+        if (copies.size > 1) SettingsRow("Play from…", subtitle = "${copies.size} sources have this song", icon = Icons.Outlined.PlayArrow, onClick = { playFrom = true })
         SettingsRow("Add to queue", icon = Icons.AutoMirrored.Outlined.QueueMusic, onClick = { container.music.enqueue(m); close() })
         SettingsRow("Add to playlist", icon = Icons.AutoMirrored.Outlined.PlaylistAdd, onClick = { playlist = true })
     }

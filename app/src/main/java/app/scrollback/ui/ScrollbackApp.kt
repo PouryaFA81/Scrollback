@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.ui
 
 import androidx.compose.animation.AnimatedContent
@@ -203,9 +205,11 @@ private fun AppNav() {
                 onOpenFolders = { nav.navigate("folders") },
                 onOpenDuplicates = { nav.navigate("duplicates") },
                 onOpenServers = { nav.navigate("servers") },
+                onOpenLicenses = { nav.navigate("licenses") },
                 onBack = { nav.popBackStack() },
             )
         }
+        composable("licenses") { app.scrollback.feature.about.OpenSourceLicensesScreen(onBack = { nav.popBackStack() }) }
         composable("folders") { FoldersScreen(onBack = { nav.popBackStack() }) }
         composable("servers") { ServersScreen(onBack = { nav.popBackStack() }, onBrowseNextcloud = { nav.navigate("nextcloud/$it") }) }
         composable("nextcloud/{account}") { e -> NextcloudBrowseScreen(e.arguments?.getString("account").orEmpty(), onBack = { nav.popBackStack() }) }

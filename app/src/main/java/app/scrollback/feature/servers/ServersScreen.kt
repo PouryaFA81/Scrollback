@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.feature.servers
 
 import android.content.Intent
@@ -28,6 +30,8 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.NetworkCheck
+import androidx.compose.material.icons.outlined.AltRoute
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -134,6 +138,7 @@ fun ServersScreen(onBack: () -> Unit, onBrowseNextcloud: (String) -> Unit) {
                     onClick = { selected = a.id },
                 )
             }
+            item { MusicDuplicatesCard(Modifier.padding(top = SbSpace.l)) }
         }
     }
 
@@ -169,6 +174,10 @@ private fun AccountSheet(a: ServerAccount, onBrowse: (String) -> Unit, onDismiss
     val ctx = LocalContext.current
     val haptics = rememberHaptics()
     var confirm by remember { mutableStateOf(false) }
+    var testing by remember { mutableStateOf(false) }
+    var editingAlt by remember { mutableStateOf(false) }
+    if (testing) { TestConnectionSheet(a, onDismiss = { testing = false }); return }
+    if (editingAlt) { AlternateAddressSheet(a, onDismiss = { editingAlt = false }); return }
     GlassSheet(onDismiss) { close ->
         SheetTitle(a.displayName)
         Text(a.baseUrl, style = MaterialTheme.typography.bodySmall, color = SbColors.TextSecondary, modifier = Modifier.padding(bottom = SbSpace.m))
@@ -200,6 +209,17 @@ private fun AccountSheet(a: ServerAccount, onBrowse: (String) -> Unit, onDismiss
                 subtitle = "Index this server's songs into Music",
                 icon = Icons.Outlined.LibraryMusic,
                 onClick = { container.appScope.launch { container.addMusicServerSource(a.id) }; Toast.makeText(ctx, "Indexing…", Toast.LENGTH_SHORT).show(); close() },
+            )
+        }
+        if (a.type.hasConnectionTest) {
+            RowDivider()
+            SettingsRow("Test connection", subtitle = "Checks each address, redirects and your sign-in", icon = Icons.Outlined.NetworkCheck, onClick = { testing = true })
+            RowDivider()
+            SettingsRow(
+                "Alternate address",
+                subtitle = a.altUrl?.let { "${it.substringAfter("://")} · switches automatically" } ?: "Optional LAN or VPN address, used when the main one can't connect",
+                icon = Icons.Outlined.AltRoute,
+                onClick = { editingAlt = true },
             )
         }
         RowDivider()
@@ -255,15 +275,23 @@ private fun AddNextcloudSheet(onDismiss: () -> Unit) {
         } else {
             Button(
                 onClick = {
-                    val base = ServerAccount.normaliseUrl(url)
                     waiting = true
                     job = scope.launch {
                         try {
                             val flow = container.servers.loginFlow
-                            val start = withContext(Dispatchers.IO) { flow.start(base) }
+                            // v0.14: follow the address's redirects first (http -> https, www, sub-paths)
+                            // so the login, the polling and the saved account all use the address that works.
+                            val probe = withContext(Dispatchers.IO) { container.servers.resolveNewAddress(app.scrollback.remote.ProbeKind.NEXTCLOUD, url) }
+                            probeError(probe)?.let { throw java.io.IOException(it) }
+                            val base = if (probe.recognised) probe.canonical ?: probe.address else probe.address
+                            val start = try {
+                                withContext(Dispatchers.IO) { flow.start(base) }
+                            } catch (e: app.scrollback.remote.HttpException) {
+                                throw java.io.IOException(probe.problem ?: e.message)
+                            }
                             ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(start.loginUrl)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                             val result = withContext(Dispatchers.IO) { flow.poll(start) }
-                            val account = container.servers.addNextcloud(result)
+                            val account = container.servers.addNextcloud(result, start.base)
                             Toast.makeText(ctx, "Signed in as ${account.displayName}", Toast.LENGTH_SHORT).show()
                             close()
                         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -272,6 +300,7 @@ private fun AddNextcloudSheet(onDismiss: () -> Unit) {
                             error = when (e) {
                                 is java.net.UnknownHostException -> "Server not found"
                                 is app.scrollback.remote.HttpException -> e.message
+                                is java.io.IOException -> e.message ?: "Couldn't connect"
                                 else -> "Couldn't connect (${e.javaClass.simpleName})"
                             }
                             waiting = false

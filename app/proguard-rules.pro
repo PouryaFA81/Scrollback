@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Keep Room entities and DAOs (handled by Room's generated code).
 
 # --- v0.7 SFTP (sshj) / SMB (smbj) ---------------------------------------------------------

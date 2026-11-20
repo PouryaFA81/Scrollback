@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.remote.music
 
 import app.scrollback.accounts.ServerAccount
@@ -108,6 +110,7 @@ class JellyfinMediaSource(
                         album = album,
                         title = title,
                         trackNo = it.optInt("IndexNumber"),
+                        discNo = it.optInt("ParentIndexNumber"),
                         durationMs = it.optLong("RunTimeTicks") / 10_000,
                         remoteLiked = it.optJSONObject("UserData")?.optBoolean("IsFavorite"),
                     )

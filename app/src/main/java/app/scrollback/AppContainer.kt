@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback
 
 import android.content.Context
@@ -38,7 +40,7 @@ class AppContainer(context: Context) {
     val sources = MediaSourceRegistry(context, accounts, dav)
     /** v0.7: SFTP + SMB connections (one live connection per account, opened on demand). */
     val remoteStorage = app.scrollback.remote.fs.RemoteStorage(accounts)
-    val library = LibraryRepository(context, db, sources, appScope)
+    val library = LibraryRepository(context, db, sources, appScope, settings)
     val playback = app.scrollback.player.Playback(context, http, auth, remoteStorage)
     val downloader = app.scrollback.remote.Downloader(context, http, auth)
     val sync = app.scrollback.sync.SyncEngine(db, accounts, dav)

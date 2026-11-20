@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pourya FA
 # Publishes a GitHub Release for an existing pushed tag, attaching the debug and release APKs.
 # Usage: scripts/publish-release.sh v0.6.0 [notes-file]
 # APKs come from dist/scrollback-{arm64-v8a,armeabi-v7a,universal}-release.apk and

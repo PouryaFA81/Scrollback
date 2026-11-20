@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.data.db
 
 import androidx.room.Dao
@@ -198,14 +200,14 @@ interface MediaDao {
     @Query("SELECT * FROM media WHERE kind = 'audio' AND missing = 0 AND durationMs = 0 AND uri NOT LIKE 'http%' AND uri NOT LIKE 'subsonic:%' AND uri NOT LIKE 'jellyfin:%' LIMIT :limit")
     suspend fun missingAudioTags(limit: Int): List<MediaEntity>
 
-    @Query("UPDATE media SET title = :title, artist = :artist, album = :album, trackNo = :trackNo, durationMs = :durationMs, thumbUri = :thumbUri WHERE id = :id")
-    suspend fun setAudioTags(id: Long, title: String?, artist: String?, album: String?, trackNo: Int, durationMs: Long, thumbUri: String?)
+    @Query("UPDATE media SET title = :title, artist = :artist, album = :album, trackNo = :trackNo, discNo = :discNo, durationMs = :durationMs, thumbUri = :thumbUri WHERE id = :id")
+    suspend fun setAudioTags(id: Long, title: String?, artist: String?, album: String?, trackNo: Int, discNo: Int, durationMs: Long, thumbUri: String?)
 
     @Query("SELECT * FROM media WHERE sourceId = :sourceId AND remoteId = :remoteId LIMIT 1")
     suspend fun byRemoteId(sourceId: Long, remoteId: String): MediaEntity?
 
-    @Query("UPDATE media SET thumbUri = :thumbUri, artist = :artist, album = :album, title = :title, trackNo = :trackNo, remoteId = :remoteId, durationMs = CASE WHEN :durationMs > 0 THEN :durationMs ELSE durationMs END WHERE id = :id")
-    suspend fun setExtras(id: Long, thumbUri: String?, artist: String?, album: String?, title: String?, trackNo: Int, remoteId: String?, durationMs: Long)
+    @Query("UPDATE media SET thumbUri = :thumbUri, artist = :artist, album = :album, title = :title, trackNo = :trackNo, discNo = :discNo, remoteId = :remoteId, durationMs = CASE WHEN :durationMs > 0 THEN :durationMs ELSE durationMs END WHERE id = :id")
+    suspend fun setExtras(id: Long, thumbUri: String?, artist: String?, album: String?, title: String?, trackNo: Int, discNo: Int, remoteId: String?, durationMs: Long)
 
     @Query("UPDATE media SET localUri = :localUri WHERE id = :id")
     suspend fun setLocalUri(id: Long, localUri: String?)

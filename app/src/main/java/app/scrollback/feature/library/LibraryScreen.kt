@@ -1,7 +1,10 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.feature.library
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -370,13 +373,20 @@ fun ListRow(
     trailing: @Composable (() -> Unit)? = null,
     below: @Composable (() -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier
             .fillMaxWidth()
             .clip(SbRadius.Card)
             .background(SbColors.Surface)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                when {
+                    onLongClick != null -> Modifier.combinedClickable(onClick = { onClick?.invoke() }, onLongClick = onLongClick)
+                    onClick != null -> Modifier.clickable(onClick = onClick)
+                    else -> Modifier
+                }
+            )
             .padding(horizontal = SbSpace.l, vertical = SbSpace.m),
         verticalAlignment = Alignment.CenterVertically,
     ) {

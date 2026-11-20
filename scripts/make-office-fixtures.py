@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Pourya FA
 """Generates the small office fixtures used by OfficeTest (app/src/test/resources/office/).
 
 - lo-*.docx / lo-*.xlsx / lo-*.pptx come from LibreOffice (realistic files with styles, numbering, rels).

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.data.source
 
 import android.net.Uri
@@ -47,6 +49,8 @@ data class ScannedEntry(
     val album: String? = null,
     val title: String? = null,
     val trackNo: Int = 0,
+    /** v0.14: disc number (0 = unknown), used to tell apart same-numbered tracks across discs. */
+    val discNo: Int = 0,
     val durationMs: Long = 0,
     /** Server-side favourite (Subsonic star / Jellyfin favourite); null when the source has none. */
     val remoteLiked: Boolean? = null,

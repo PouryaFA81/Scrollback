@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.data.repo
 
 import android.content.Context
@@ -23,6 +25,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import app.scrollback.core.music.MergedBrowse
+import app.scrollback.core.music.MusicGroups
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -40,6 +52,7 @@ class LibraryRepository(
     private val db: AppDatabase,
     private val sources: MediaSourceRegistry,
     private val scope: kotlinx.coroutines.CoroutineScope,
+    private val settings: app.scrollback.data.prefs.SettingsStore? = null,
 ) {
     private val sourceDao = db.sources()
     private val mediaDao = db.media()
@@ -168,7 +181,7 @@ class LibraryRepository(
                     mime = e.mime, kind = e.kind.id, size = e.size,
                     dateModified = e.dateModified.takeIf { it > 0 } ?: now, dateAdded = now,
                     thumbUri = e.thumbUri, remoteId = e.remoteId, artist = e.artist, album = e.album,
-                    title = e.title, trackNo = e.trackNo, durationMs = e.durationMs,
+                    title = e.title, trackNo = e.trackNo, discNo = e.discNo, durationMs = e.durationMs,
                     liked = e.remoteLiked == true, likedAt = if (e.remoteLiked == true) now else 0,
                 )
                 if (batch.size >= 200) { mediaDao.insertAll(batch); batch.clear() }
@@ -178,7 +191,7 @@ class LibraryRepository(
                     mediaDao.updateChanged(row.id, e.name, e.relativePath, e.mime, e.size, e.dateModified)
                 }
                 if (e.thumbUri != null || e.remoteId != null || e.artist != null || e.title != null) {
-                    mediaDao.setExtras(row.id, e.thumbUri, e.artist, e.album, e.title, e.trackNo, e.remoteId, e.durationMs)
+                    mediaDao.setExtras(row.id, e.thumbUri, e.artist, e.album, e.title, e.trackNo, e.discNo, e.remoteId, e.durationMs)
                 }
                 val remoteLiked = e.remoteLiked
                 if (remoteLiked != null && remoteLiked != row.liked) {
@@ -208,14 +221,15 @@ class LibraryRepository(
                     fun k(key: Int) = r.extractMetadata(key)?.trim()?.ifEmpty { null }
                     val d = k(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: -1L
                     val track = k(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)?.substringBefore('/')?.toIntOrNull() ?: 0
+                    val disc = k(MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)?.substringBefore('/')?.toIntOrNull() ?: 0
                     val art = if (r.embeddedPicture != null) app.scrollback.player.AudioArt.uriFor(m.uri) else null
                     mediaDao.setAudioTags(
                         m.id, k(MediaMetadataRetriever.METADATA_KEY_TITLE),
                         k(MediaMetadataRetriever.METADATA_KEY_ARTIST) ?: k(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST),
-                        k(MediaMetadataRetriever.METADATA_KEY_ALBUM), track, if (d > 0) d else -1L, art,
+                        k(MediaMetadataRetriever.METADATA_KEY_ALBUM), track, disc, if (d > 0) d else -1L, art,
                     )
                 } catch (_: Exception) {
-                    mediaDao.setAudioTags(m.id, null, null, null, 0, -1L, null)
+                    mediaDao.setAudioTags(m.id, null, null, null, 0, 0, -1L, null)
                 } finally {
                     runCatching { r.release() }
                 }
@@ -270,7 +284,16 @@ class LibraryRepository(
 
     // ---- Item actions --------------------------------------------------------------------
 
+    /**
+     * Likes/unlikes an item. With "Hide duplicates across servers" on, a merged song is liked on every
+     * copy (each server that supports stars/favourites gets it), so it stays liked whichever copy plays.
+     */
     suspend fun setLiked(id: Long, liked: Boolean) {
+        val copies = withContext(Dispatchers.Default) { currentMusicGroups().copiesOf(id) }.map { it.id }
+        for (cid in copies.ifEmpty { listOf(id) }) setLikedOne(cid, liked)
+    }
+
+    private suspend fun setLikedOne(id: Long, liked: Boolean) {
         mediaDao.setLiked(id, liked, if (liked) System.currentTimeMillis() else 0)
         // Mirror to music servers (Subsonic star / Jellyfin favourite) in the background.
         val item = mediaDao.byId(id) ?: return
@@ -280,17 +303,65 @@ class LibraryRepository(
 
     // ---- Music ---------------------------------------------------------------------------
 
-    fun songs(showHidden: Boolean) = mediaDao.observeSongs(showHidden)
-    fun likedSongs(showHidden: Boolean) = mediaDao.observeLikedSongs(showHidden)
-    fun recentSongs(showHidden: Boolean) = mediaDao.observeRecentSongs(showHidden)
-    fun artists(showHidden: Boolean) = mediaDao.observeArtists(showHidden)
-    fun albums(showHidden: Boolean) = mediaDao.observeAlbums(showHidden)
+    // v0.14 "Hide duplicates across servers": a view-level merge (core/music/MusicMerge.kt). Every
+    // copy stays in the database and on its server; lists just show each song once.
+    private val mergePrefs: Flow<Pair<Boolean, List<Long>>> =
+        (settings?.settings?.map { it.hideMusicDuplicates to it.musicSourceOrder } ?: flowOf(false to emptyList())).distinctUntilChanged()
+
+    /** Copies of the same song across sources, always computed (for the Servers screen counts). */
+    val musicDuplicates: StateFlow<MusicGroups> =
+        combine(mediaDao.observeSongs(true), mergePrefs) { songs, (_, order) -> MusicGroups.build(songs, order) }
+            .flowOn(Dispatchers.Default)
+            .stateIn(scope, SharingStarted.WhileSubscribed(60_000), MusicGroups.EMPTY)
+
+    /** The groups the music lists merge by: empty while the option is off. */
+    val musicGroups: StateFlow<MusicGroups> =
+        combine(musicDuplicates, mergePrefs) { g, (on, _) -> if (on) g else MusicGroups.EMPTY }
+            .stateIn(scope, SharingStarted.WhileSubscribed(60_000), MusicGroups.EMPTY)
+
+    private val mergeOn: Flow<Boolean> = mergePrefs.map { it.first }.distinctUntilChanged()
+
+    private suspend fun currentMusicGroups(): MusicGroups {
+        val (on, order) = mergePrefs.first()
+        if (!on) return MusicGroups.EMPTY
+        return musicGroups.value.takeIf { it.groups.isNotEmpty() } ?: MusicGroups.build(mediaDao.observeSongs(true).first(), order)
+    }
+
+    private fun merged(f: Flow<List<MediaEntity>>): Flow<List<MediaEntity>> =
+        combine(f, musicGroups) { list, g -> g.apply(list) }.flowOn(Dispatchers.Default)
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun <T> whenMerged(on: () -> Flow<T>, off: () -> Flow<T>): Flow<T> = mergeOn.flatMapLatest { if (it) on() else off() }
+
+    fun songs(showHidden: Boolean) = merged(mediaDao.observeSongs(showHidden))
+    fun likedSongs(showHidden: Boolean): Flow<List<MediaEntity>> = whenMerged(
+        on = { merged(mediaDao.observeSongs(showHidden)).map { all -> all.filter { it.liked }.sortedByDescending { it.likedAt } } },
+        off = { mediaDao.observeLikedSongs(showHidden) },
+    )
+    fun recentSongs(showHidden: Boolean) = merged(mediaDao.observeRecentSongs(showHidden))
+    fun artists(showHidden: Boolean): Flow<List<app.scrollback.data.db.ArtistRow>> = whenMerged(
+        on = { songs(showHidden).map(MergedBrowse::artists) },
+        off = { mediaDao.observeArtists(showHidden) },
+    )
+    fun albums(showHidden: Boolean): Flow<List<app.scrollback.data.db.AlbumRow>> = whenMerged(
+        on = { songs(showHidden).map(MergedBrowse::albums) },
+        off = { mediaDao.observeAlbums(showHidden) },
+    )
     fun musicFolders(showHidden: Boolean) = mediaDao.observeMusicFolders(showHidden)
-    fun artistSongs(artist: String, showHidden: Boolean) = mediaDao.observeArtistSongs(artist, showHidden)
-    fun albumSongs(album: String, showHidden: Boolean) = mediaDao.observeAlbumSongs(album, showHidden)
-    fun folderSongs(folder: String, showHidden: Boolean) = mediaDao.observeFolderSongs(folder, showHidden)
+    fun artistSongs(artist: String, showHidden: Boolean): Flow<List<MediaEntity>> = whenMerged(
+        on = { songs(showHidden).map { MergedBrowse.artistSongs(it, artist) } },
+        off = { mediaDao.observeArtistSongs(artist, showHidden) },
+    )
+    fun albumSongs(album: String, showHidden: Boolean): Flow<List<MediaEntity>> = whenMerged(
+        on = { songs(showHidden).map { MergedBrowse.albumSongs(it, album) } },
+        off = { mediaDao.observeAlbumSongs(album, showHidden) },
+    )
+    fun folderSongs(folder: String, showHidden: Boolean) = merged(mediaDao.observeFolderSongs(folder, showHidden))
     fun searchSongs(q: String, showHidden: Boolean) =
-        mediaDao.observeSongSearch("%${q.trim().replace("%", "").replace("_", "")}%", showHidden)
+        merged(mediaDao.observeSongSearch("%${q.trim().replace("%", "").replace("_", "")}%", showHidden))
+
+    /** Display names of all sources, for "Play from…" and the preferred-order list. */
+    fun sourceNames(): Flow<Map<Long, String>> = sourceDao.observeSummaries().map { l -> l.associate { it.id to it.displayName } }
 
     suspend fun setHidden(id: Long, hidden: Boolean) = mediaDao.setHidden(id, hidden)
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.notes
 
 /** A small, dependency-free Markdown reader for the note preview. Pure Kotlin, unit-tested. */

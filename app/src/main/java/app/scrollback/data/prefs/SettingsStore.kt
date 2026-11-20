@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.data.prefs
 
 import android.content.Context
@@ -31,6 +33,10 @@ data class Settings(
     val filesAscending: Boolean = true,
     /** Show the Music section (v0.4). */
     val showMusic: Boolean = true,
+    /** v0.14: show a song once when several sources (servers/folders) have it. View-only, nothing is deleted. */
+    val hideMusicDuplicates: Boolean = false,
+    /** v0.14: preferred source order for merged songs (source ids, preferred first). */
+    val musicSourceOrder: List<Long> = emptyList(),
 ) {
     val hasPin: Boolean get() = pinSalt != null && pinHash != null
 }
@@ -49,6 +55,8 @@ class SettingsStore(private val context: Context) {
         val filesSort = stringPreferencesKey("files_sort")
         val filesAsc = booleanPreferencesKey("files_ascending")
         val showMusic = booleanPreferencesKey("show_music")
+        val hideMusicDupes = booleanPreferencesKey("hide_music_duplicates")
+        val musicSourceOrder = stringPreferencesKey("music_source_order")
     }
 
     val settings: Flow<Settings> = context.dataStore.data.map { p ->
@@ -65,6 +73,8 @@ class SettingsStore(private val context: Context) {
             filesSort = p[K.filesSort] ?: "name",
             filesAscending = p[K.filesAsc] ?: true,
             showMusic = p[K.showMusic] ?: true,
+            hideMusicDuplicates = p[K.hideMusicDupes] ?: false,
+            musicSourceOrder = p[K.musicSourceOrder].orEmpty().split(',').mapNotNull { it.trim().toLongOrNull() },
         )
     }
 
@@ -91,6 +101,8 @@ class SettingsStore(private val context: Context) {
     suspend fun setSavedNewestFirst(v: Boolean) = context.dataStore.edit { it[K.savedNewest] = v }
     suspend fun setPicturesNewestFirst(v: Boolean) = context.dataStore.edit { it[K.picturesNewest] = v }
     suspend fun setShowMusic(v: Boolean) = context.dataStore.edit { it[K.showMusic] = v }
+    suspend fun setHideMusicDuplicates(v: Boolean) = context.dataStore.edit { it[K.hideMusicDupes] = v }
+    suspend fun setMusicSourceOrder(ids: List<Long>) = context.dataStore.edit { it[K.musicSourceOrder] = ids.joinToString(",") }
     suspend fun setFilesGrid(v: Boolean) = context.dataStore.edit { it[K.filesGrid] = v }
     suspend fun setFilesSort(by: String, ascending: Boolean) = context.dataStore.edit { it[K.filesSort] = by; it[K.filesAsc] = ascending }
 }
