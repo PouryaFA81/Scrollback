@@ -6,3 +6,6 @@ contact_links:
   - name: Roadmap
     url: https://github.com/PouryaFA81/Scrollback#roadmap
     about: See what's already planned before requesting a feature.
+  - name: Report a security problem privately
+    url: https://github.com/PouryaFA81/Scrollback/blob/main/SECURITY.md
+    about: Please don't open a public issue for security problems. Email admin@homelabgate.lol instead.

@@ -82,7 +82,7 @@ with more detail in the body if needed.
 ## Reporting security issues
 
 Please **don't** report security problems in public issues. Contact the maintainer privately at
-**[SECURITY CONTACT: to be added by the maintainer]**.
+**[admin@homelabgate.lol](mailto:admin@homelabgate.lol)**. See [SECURITY.md](SECURITY.md) for details.
 
 ## License
 

@@ -9,13 +9,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 pat="${PRIVATE_PATTERNS:-.private-patterns}"
-if [[ ! -s "$pat" ]]; then
-  echo "check-private: no pattern file ($pat); skipping. Create it locally to enable the check." >&2
-  exit 0
-fi
 list=$(mktemp); trap 'rm -f "$list"' EXIT
-grep -vE '^\s*(#|$)' "$pat" > "$list" || true
-[[ -s "$list" ]] || { echo "check-private: $pat has no patterns; skipping." >&2; exit 0; }
+# Built-in rule (always on): the maintainer's bare domain and the public contact address
+# admin@homelabgate.lol may appear, but no subdomain of it (those are private services).
+# Any label right before ".homelabgate.lol" (a hostname like <service>.homelabgate.lol) is caught.
+echo '[a-z0-9_-]\.homelabgate\.lol' > "$list"
+if [[ -s "$pat" ]]; then
+  grep -vE '^\s*(#|$)' "$pat" >> "$list" || true
+else
+  echo "check-private: no pattern file ($pat); only the built-in rules run. Create it locally for the full check." >&2
+fi
 found=0
 if git grep -nIiE -f "$list" -- . ':!.private-patterns'; then found=1; fi
 for f in "$@"; do
