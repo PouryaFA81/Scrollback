@@ -310,8 +310,8 @@ Settings (folders, servers/accounts, playback, privacy, music) open from the gea
   copy.
 - **Images, audio and documents** open in the VERT web app, which converts them in the browser.
 - **Server:** the default is https://vert.sh with vertd at https://vertd.vert.sh (run by the VERT
-  team). `Vert.kt` also ships a second, self-hosted instance as a preset; self-hosted VERT shows its
-  vertd URL in its settings, so that has to be entered. An optional extra header (`Name: value`)
+  team). Users can point it at their own VERT server instead; self-hosted VERT shows its vertd URL
+  in its settings, so that has to be entered. An optional extra header (`Name: value`)
   supports a vertd behind an auth proxy; it is stored encrypted and only sent to vertd.
 - VERT and vertd are separate GPL-3.0 projects by the VERT team (https://github.com/VERT-sh).
   Scrollback only talks to their HTTP API and includes none of their code.
