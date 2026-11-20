@@ -16,7 +16,8 @@ You can add as many folders as you like. **Subfolders are included** automatical
 for saved clips are `Movies/` or `Download/`.
 
 You can also add a folder from the [file manager](file-manager.md): long-press the folder, then tap
-**Add source**. Nextcloud folders can be added too; see [Nextcloud](nextcloud.md).
+**Add source**. Nextcloud folders can be added too; see [Nextcloud](nextcloud.md). So can folders on SFTP and SMB
+servers; see [Network storage](network-storage.md).
 
 ## What gets indexed
 

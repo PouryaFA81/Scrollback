@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56" role="img" aria-label="Nearby share icon">
+<title>Nearby share</title>
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.10"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient></defs>
+<rect x="0.5" y="0.5" width="55" height="55" rx="16" fill="#000000"/>
+<rect x="0.5" y="0.5" width="55" height="55" rx="16" fill="url(#g)" stroke="#FFFFFF" stroke-opacity="0.16"/>
+<g transform="translate(16,16)" fill="none" stroke="#F2F2F2" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.6" fill="#F2F2F2"/><path d="M8.2 15.8a5.4 5.4 0 0 1 0-7.6M15.8 8.2a5.4 5.4 0 0 1 0 7.6"/><path d="M5.3 18.7a9.5 9.5 0 0 1 0-13.4M18.7 5.3a9.5 9.5 0 0 1 0 13.4"/></g>
+</svg>

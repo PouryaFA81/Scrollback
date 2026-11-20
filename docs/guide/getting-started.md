@@ -40,13 +40,17 @@ Read [The feeds](feeds.md) for all the controls.
 ## 4. Look around
 
 - **Pictures** shows the pictures from your folders.
-- **Library** keeps your liked videos, playlists, watch history and search.
-- **Files** is a file manager for your phone's storage.
+- **Library** keeps your liked videos, playlists, watch history and search. At the top,
+  [Watch](watch.md) plays movies and shows from your Jellyfin server, if you have one.
+- **Files** is a file manager for your phone's storage, with **Tools** for notes, archives, Office
+  documents, network storage, [Nearby share](nearby-share.md) and file conversion.
+- Videos you open from Files or from other apps play in [Scrollback Player](scrollback-player.md).
 - **Music** plays the songs in your folders and, if you like, from your own music server.
 - The **gear** at the top opens **Settings**.
 
 ## Everything works offline
 
 You don't need an account or an internet connection. Servers such as Nextcloud, Subsonic-compatible
-servers and Jellyfin are optional extras; see [Nextcloud](nextcloud.md) and
-[Music and music servers](music-servers.md).
+servers, Jellyfin, SFTP and SMB are optional extras; see [Nextcloud](nextcloud.md),
+[Music and music servers](music-servers.md), [Watch](watch.md) and
+[Network storage](network-storage.md).

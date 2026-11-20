@@ -45,11 +45,17 @@ also:
 
 - **Hide** the item (or **Unhide** it). This needs a PIN; see
   [PIN lock and hidden items](pin-and-hidden-items.md).
+- **Play in full player**, for videos. It opens the video in [Scrollback Player](scrollback-player.md)
+  with gestures, subtitles, audio tracks and picture-in-picture, with the rest of the folder as the
+  playlist.
 - **Download** a copy, for items streamed from [Nextcloud](nextcloud.md).
 - **Delete file**. Scrollback asks **Delete this file?** before anything happens.
 
 > **Careful:** **Delete file** permanently deletes the file from its folder. For a Nextcloud item,
 > it deletes the file **on the server**.
+
+If the feed can't play a video's format, Scrollback opens it in
+[Scrollback Player](scrollback-player.md) automatically.
 
 ## Resume where you left off
 

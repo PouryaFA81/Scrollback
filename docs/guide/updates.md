@@ -8,7 +8,7 @@ ask: there are no background checks and no scheduled jobs.
 ## Which version do I have?
 
 Open **Settings** with the gear at the top. The version is shown under **About**, for example
-**Scrollback 0.6.0**. Debug builds end in `-debug`, for example **Scrollback 0.6.0-debug**. The
+**Scrollback 0.14.0**. Debug builds end in `-debug`, for example **Scrollback 0.14.0-debug**. The
 **Updates** section also shows it: *Only checks when you tap. Current: …*
 
 ## Check for an update
@@ -29,7 +29,9 @@ Your library, likes, playlists, notes and settings stay as they are.
 
 - It picks the APK that matches your phone's processor: **arm64-v8a** first, then
   **armeabi-v7a**, then the **universal** APK.
-- A release build only updates from release APKs, and a debug build only from the debug APK.
+- A release build only updates from release APKs, and a debug build only from a debug APK.
+  Releases since v0.9.0 don't include a debug APK, so a debug build can't update itself from them:
+  install the release APK instead (see below).
 - Before installing, it makes sure the downloaded file is really Scrollback (the same package name)
   and that it is **signed with the same key** as the copy on your phone. If not, it stops and tells
   you, instead of letting Android fail halfway.
@@ -62,9 +64,9 @@ public, no token is needed.
 
 ## Release builds and debug builds
 
-Starting with v0.6.0, every release has **signed release APKs** (app id `app.scrollback`) and a
-**debug APK** for testing (app id `app.scrollback.debug`). Versions before v0.6.0 were debug builds
-only.
+Since v0.6.0, every release has **signed release APKs** (app id `app.scrollback`). Versions before
+v0.6.0 were debug builds only (app id `app.scrollback.debug`), and v0.6.0 to v0.8.0 also attached a
+debug APK for testing. From v0.9.0 on, releases have only the three release APKs and `SHA256SUMS`.
 
 The two are **separate apps**. They can be installed side by side, and each has its own library
 and settings. Installing the release APK doesn't replace an older debug install, and it doesn't

@@ -46,10 +46,21 @@ body:
         - PIN lock / hidden items
         - Duplicate finder
         - Files (file manager)
+        - Network storage (SFTP / SMB)
+        - Notes editor
+        - Archives
+        - Office documents
+        - Convert (VERT)
+        - Nearby share
+        - Scrollback Player
         - Nextcloud (browse, streaming, download, sync)
         - Music player
+        - Hide duplicates across servers
         - Subsonic / OpenSubsonic (incl. Navidrome)
-        - Jellyfin
+        - Jellyfin (music)
+        - Watch (Jellyfin movies and shows)
+        - Server connections (alternate address, Test connection)
+        - In-app updates
         - Settings
         - Other
     validations:
@@ -58,8 +69,8 @@ body:
     id: app-version
     attributes:
       label: Scrollback version
-      description: Shown in Settings under About, for example "0.5.0-debug".
-      placeholder: 0.5.0-debug
+      description: Shown in Settings under About, for example "0.14.1".
+      placeholder: 0.14.1
     validations:
       required: true
   - type: input
@@ -74,7 +85,7 @@ body:
     attributes:
       label: Server type and version (if relevant)
       description: Only for server features. No addresses, please.
-      placeholder: e.g. Nextcloud 31, Navidrome 0.5x, Jellyfin 10.x
+      placeholder: e.g. Nextcloud 31, Navidrome 0.5x, Jellyfin 10.x, OpenSSH, Samba
   - type: textarea
     id: extra
     attributes:

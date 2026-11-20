@@ -5,8 +5,9 @@
 ### Does Scrollback need an internet connection or an account?
 
 No. Everything except the optional servers works offline, with no account. The internet permission
-is only used for servers you add yourself (Nextcloud, Subsonic / OpenSubsonic, Jellyfin) and for
-**Check for update**, which contacts GitHub only when you tap it.
+is only used for servers you add yourself (Nextcloud, Subsonic / OpenSubsonic, Jellyfin, SFTP, SMB,
+a VERT server), for [Nearby share](nearby-share.md) on your Wi-Fi, and for **Check for update**,
+which contacts GitHub only when you tap it.
 
 ### Does Scrollback track me or show ads?
 
@@ -37,8 +38,10 @@ tap **Rescan now**. Also check that the folder (or a parent folder) is listed in
 
 ### Which file types are supported?
 
-Scrollback plays the video, picture and audio files that Android's media framework can handle on
-your phone. The exact list depends on your device.
+The feeds and the music player play the video, picture and audio files that Android's media
+framework can handle on your phone; the exact list depends on your device. For other video formats
+(for example MPEG-2, VC-1, AVI or WMV), [Scrollback Player](scrollback-player.md) uses libVLC, which
+plays almost anything. If the feed can't play a video, it opens in Scrollback Player automatically.
 
 ### Does removing a folder delete my files?
 
@@ -75,12 +78,25 @@ Yes, through the **Subsonic / OpenSubsonic** connection. There is no separate Na
 
 ### Can I watch my Jellyfin videos?
 
-Not yet. Jellyfin videos in the feeds are **Coming soon**. Today Scrollback uses Jellyfin for music.
+Yes, since v0.12.0. Open **Library → Watch**. See [Watch](watch.md).
+
+### My home server works on Wi-Fi but not over my phone's VPN.
+
+If your VPN sends all traffic through the tunnel, it may not be able to reach your home network.
+Turn on **LAN bypass** or **split tunneling** in your VPN app, or add the address that works over
+the VPN as the server's **alternate address**. **Test connection** shows which address answers. See
+[Server connections](server-connections.md).
+
+### Every song shows up twice.
+
+That happens when two servers share one music folder.
+Turn on **Hide duplicates across servers** in **Settings → Music**. Nothing is deleted. See
+[Hide duplicates across servers](music-servers.md#hide-duplicates-across-servers).
 
 ### Are the server features stable?
 
-They're new. Nextcloud, Subsonic / OpenSubsonic and Jellyfin support arrived in v0.3 and v0.4 and
-are still in early testing. Your feedback helps a lot:
+They're new and still in early testing, especially Watch (tested against a simulated Jellyfin
+server so far) and reading files from SMB shares. Your feedback helps a lot:
 [open an issue](https://github.com/PouryaFA81/Scrollback/issues/new/choose).
 
 ### Can Scrollback update itself?
@@ -90,7 +106,18 @@ Yes, since v0.6.0. Open **Settings → Updates → Check for update**. It only c
 
 ### Can Scrollback convert files?
 
-Not yet. [File conversion with VERT](file-conversion.md) is **Coming soon**.
+Yes, since v0.9.0, with VERT. See [File conversion with VERT](file-conversion.md).
+
+### Can I share files with my computer?
+
+Yes. [Nearby share](nearby-share.md) sends and receives files over Wi-Fi with computers and phones
+running LocalSend or RSend.
+
+### Why is the APK so much bigger since v0.13.0?
+
+Since v0.13.0 the APK includes libVLC for [Scrollback Player](scrollback-player.md), which plays
+almost any video format. Pick the **arm64-v8a** APK if your phone supports it, because the
+**universal** APK is the biggest. The release page lists the current size of each file.
 
 ### Is it on F-Droid or Google Play?
 
@@ -99,4 +126,7 @@ Not yet. An F-Droid / IzzyOnDroid build without All files access is on the
 
 ### What license is Scrollback under?
 
-The license is **to be decided** and will be chosen before the repository goes public.
+Scrollback is free software under the **GNU General Public License v3.0 or later**
+(GPL-3.0-or-later). See [LICENSE](../../LICENSE). Third-party libraries keep their own licenses;
+they are listed in [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) and in the app under
+**Settings → About → Open-source licenses**.
