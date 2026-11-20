@@ -69,8 +69,8 @@ body:
     id: app-version
     attributes:
       label: Scrollback version
-      description: Shown in Settings under About, for example "0.14.0".
-      placeholder: 0.14.0
+      description: Shown in Settings under About, for example "0.14.1".
+      placeholder: 0.14.1
     validations:
       required: true
   - type: input

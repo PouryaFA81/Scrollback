@@ -31,12 +31,18 @@ user-facing docs, see the [README](../README.md) and the [user guide](guide/READ
 ./scripts/build-apk.sh              # debug + signed release splits → dist/ and dist/archive/ (timestamped)
 ./scripts/build-apk.sh --install    # same, then adb install (debug + arm64-v8a release)
 ./scripts/build-apk.sh --no-release # debug only (fast)
-./scripts/publish-release.sh v0.14.0 # GitHub Release for a pushed tag, with the APKs + SHA256SUMS
+./scripts/publish-release.sh v0.14.1 # GitHub Release for a pushed tag, with the APKs + SHA256SUMS
+./scripts/check-private.sh          # private-detail guard (see below)
 ./gradlew testDebugUnitTest lint    # JVM unit tests (app/src/test) and Android lint
 ```
 
 - `dist/` is git-ignored. `build-apk.sh` never overwrites older archives; it reads the version from
   `versionName` in `app/build.gradle.kts`.
+- **Private-detail guard (v0.14.1):** `scripts/check-private.sh [extra-file ...]` runs `git grep` over
+  tracked files (plus any files you pass, such as release notes) with the extended regexes in
+  `.private-patterns`. That file is git-ignored and stays on the maintainer's machine, so the patterns
+  never reach GitHub. Without it the script prints a notice and skips. `publish-release.sh` runs it on
+  the release notes before creating a release.
 - Application id: `app.scrollback` (debug builds use the suffix `.debug`, so `app.scrollback.debug`,
   and the version name gets `-debug`).
 - `minSdk` 33 (Android 13), `targetSdk` 37, compile SDK 37.
@@ -309,10 +315,16 @@ Settings (folders, servers/accounts, playback, privacy, music) open from the gea
   websocket, downloads the result to `Download/Scrollback/`, then confirms so the server deletes its
   copy.
 - **Images, audio and documents** open in the VERT web app, which converts them in the browser.
-- **Server:** the default is https://vert.sh with vertd at https://vertd.vert.sh (run by the VERT
-  team). Users can point it at their own VERT server instead; self-hosted VERT shows its vertd URL
-  in its settings, so that has to be entered. An optional extra header (`Name: value`)
-  supports a vertd behind an auth proxy; it is stored encrypted and only sent to vertd.
+- **Server (v0.14.1):** the VERT server dialog in `ConvertScreen.kt` offers two choices.
+  **vert.sh** (default) sets `VertConfig.DEFAULT_INSTANCE` (https://vert.sh) and
+  `DEFAULT_VERTD` (https://vertd.vert.sh), run by the VERT team. **Custom** clears both fields for
+  the user's own VERT URL and vertd URL (self-hosted VERT shows its vertd URL in its settings); it is
+  selected whenever the saved instance isn't vert.sh, so a URL saved by an older version is kept.
+  `VertService.save()` normalises the URLs (`VertConfig.normalize`, adds `https://` when no scheme
+  is given), falls back to vert.sh when the VERT URL is blank, and stores them in the app's private
+  preferences on the device only. A blank vertd URL turns video conversion off. There is no built-in
+  preset for any personal server. An optional extra header (`Name: value`) supports a vertd behind
+  an auth proxy; it is stored encrypted and only sent to vertd.
 - VERT and vertd are separate GPL-3.0 projects by the VERT team (https://github.com/VERT-sh).
   Scrollback only talks to their HTTP API and includes none of their code.
 
@@ -419,13 +431,13 @@ TrueHD audio and ASS/SSA subtitles with their own styling (libass).
 ## Release APK sizes
 
 The release build uses R8 plus resource shrinking; the debug APK is much larger because nothing is
-stripped. Sizes of the v0.14.0 release assets on GitHub (1 MiB = 1,048,576 bytes):
+stripped. Sizes of the v0.14.1 release assets on GitHub (1 MiB = 1,048,576 bytes):
 
 | APK | Bytes | About |
 |---|---|---|
-| arm64-v8a | 35,582,240 | 33.9 MiB |
-| armeabi-v7a | 31,886,014 | 30.4 MiB |
-| universal | 56,039,553 | 53.4 MiB |
+| arm64-v8a | 35,582,652 | 33.9 MiB |
+| armeabi-v7a | 31,886,426 | 30.4 MiB |
+| universal | 56,039,961 | 53.4 MiB |
 
 libVLC (v0.13) added about 20–24 MiB per APK. Before that, the release APKs were about 9.7–10.7 MiB
 (v0.7 to v0.12; about 4 MB of that is Bouncy Castle for SSH) and about 5.5 MiB in v0.6.
@@ -498,5 +510,7 @@ system toggle only if they opt in. Without it everything uses SAF folder grants.
 13. **v0.13.0:** Scrollback Player (libVLC).
 14. **v0.14.0:** own redirect follower, alternate addresses, Test connection, hide duplicates
     across servers, GPL-3.0-or-later.
+15. **v0.14.1:** privacy clean-up: VERT server is vert.sh or Custom (no personal preset), generic
+    docs and test data, `scripts/check-private.sh`.
 
 No third-party code is copied; SnapReel (MIT) was only a design reference.

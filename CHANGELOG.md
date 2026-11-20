@@ -17,6 +17,24 @@ See [ROADMAP.md](ROADMAP.md) for the full plan. Next up (0.15, polish):
 - Scrollback Player's top bar shows whether the hardware or software decoder is really in use
 - Keeping the download size in check
 
+## [0.14.1] - 2026-11-20
+
+A small privacy clean-up release. Nothing else changed from 0.14.0.
+
+### Changed
+
+- **Convert (VERT): choose vert.sh or Custom.** The **VERT server** dialog now offers **vert.sh**
+  (the default) or **Custom**, where you enter your own VERT URL and video server (vertd) URL. Both
+  are saved only on your phone. A custom server you saved before is kept. The built-in preset for a
+  personal VERT server is gone.
+- The project's documentation, roadmap and tests now use generic examples instead of details from
+  the developer's own setup.
+
+### For contributors
+
+- New `scripts/check-private.sh` checks the repository (and release notes) against a local,
+  git-ignored list of private patterns before a release.
+
 ## [0.14.0] - 2026-11-20
 
 ### Added
@@ -330,7 +348,8 @@ First version. This release was not tagged in the repository.
   confirm.
 - Works completely offline: this version had no internet permission.
 
-[Unreleased]: https://github.com/PouryaFA81/Scrollback/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/PouryaFA81/Scrollback/compare/v0.14.1...HEAD
+[0.14.1]: https://github.com/PouryaFA81/Scrollback/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/PouryaFA81/Scrollback/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/PouryaFA81/Scrollback/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/PouryaFA81/Scrollback/compare/v0.11.0...v0.12.0

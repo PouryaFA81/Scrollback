@@ -1,7 +1,7 @@
 # Scrollback user guide
 
 Welcome! This guide walks you through everything Scrollback can do today, screen by screen. It
-describes **v0.14.0**.
+describes **v0.14.1**.
 
 > Scrollback is young, and many features are new and still in early testing, especially the server
 > connections, Watch, Nearby share and SMB. If something does not work the way this guide says, please

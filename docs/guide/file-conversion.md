@@ -29,14 +29,25 @@ your phone, so nothing is uploaded.
 
 ## Choose a server
 
-Under **VERT server** on the Convert screen:
+Tap **VERT server** on the Convert screen and pick one of two choices:
 
-- **VERT URL**: the VERT web app to use. The default is `https://vert.sh`, run by the VERT team.
-- **Video server (vertd) URL**: the default is `https://vertd.vert.sh`. If you run your own VERT,
-  enter its vertd address here; self-hosted VERT shows it in its settings.
+- **vert.sh** (the default): the public VERT web app at `https://vert.sh`, with its video server
+  at `https://vertd.vert.sh`, both run by the VERT team.
+- **Custom**: your own VERT server. Tapping it clears both fields so you can enter:
+  - **VERT URL**: your VERT web app, for example `https://vert.example.com`.
+  - **Video server (vertd) URL**: your vertd address. Self-hosted VERT shows it in its settings.
+    Leave it empty if you only want the web app; video conversion is then turned off.
+
+Both addresses are saved only on your phone. If you save with the VERT URL left empty, Scrollback
+goes back to vert.sh. A custom server you saved before v0.14.1 is kept and shows as **Custom**.
+
+You can also add:
+
 - **Extra header (optional)**: for a vertd behind a login proxy, in the form `Name: value`. It is
-  stored encrypted and only sent to vertd.
-- Tap **Test** to check the connection.
+  stored encrypted and only sent to vertd. **Remove header** deletes it.
+
+Tap **Test** to save and check the connection to the video server, or **Save** to keep your
+choice.
 
 ## Good to know
 
