@@ -23,7 +23,7 @@
 <!-- Release badge: static while the repository is private. Once it is public, switch to the dynamic one:
      https://img.shields.io/github/v/release/PouryaFA81/Scrollback?style=flat-square&color=000000&label=release -->
 <p align="center">
-  <a href="https://github.com/PouryaFA81/Scrollback/releases/latest"><img src="https://img.shields.io/badge/release-v0.14.1-000000?style=flat-square" alt="Latest release: v0.14.1"></a>
+  <a href="https://github.com/PouryaFA81/Scrollback/releases/latest"><img src="https://img.shields.io/badge/release-v0.15.0-000000?style=flat-square" alt="Latest release: v0.15.0"></a>
   <img src="https://img.shields.io/badge/Android-13%2B%20(minSdk%2033)-000000?style=flat-square&logo=android&logoColor=white" alt="Android 13 or newer (minSdk 33)">
   <img src="https://img.shields.io/badge/Kotlin-2.4-555555?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin 2.4">
   <img src="https://img.shields.io/badge/Jetpack%20Compose-Material%203-555555?style=flat-square&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose with Material 3">
@@ -47,7 +47,7 @@ indexes the folders you pick and plays them in a full-screen vertical feed, shuf
 you saved them, with likes, playlists, notes, tags and search. Your local folders never leave your
 phone.
 
-> **Status: v0.14.1, early.** Scrollback is a young project that runs on **Android 13 and newer**.
+> **Status: v0.15.0, early.** Scrollback is a young project that runs on **Android 13 and newer**.
 > Many features are new and still in early testing, especially the server connections, Watch
 > (Jellyfin video), Nearby share and SMB. Please
 > [report anything odd](https://github.com/PouryaFA81/Scrollback/issues/new/choose).
@@ -80,7 +80,7 @@ phone.
     <td width="33%" valign="top">
       <img src="docs/assets/icons/feed.svg" width="40" height="40" alt="Feed icon"><br>
       <b>Feed</b><br>
-      Full-screen vertical feed with a <b>Random</b> (shuffled) and a <b>Saved</b> (newest or oldest first) view. Like, double-tap, share, speed 0.5× to 2×, loop or auto-advance, and resume where you stopped.
+      Full-screen vertical feed with a <b>Random</b> (shuffled) and a <b>Saved</b> (newest or oldest first, all folders or just one) view. Like, double-tap, share, hold for 2×, speed 0.5× to 2×, loop or auto scroll, and it keeps your place.
     </td>
     <td width="33%" valign="top">
       <img src="docs/assets/icons/pictures.svg" width="40" height="40" alt="Pictures icon"><br>
@@ -192,7 +192,7 @@ larger than before. The release page lists the current size of each file. Scroll
 available on x86 devices, such as most emulators.
 
 To check a download, compare its SHA-256 with the line in `SHA256SUMS`
-(for example `sha256sum scrollback-0.14.1-arm64-v8a-release.apk`).
+(for example `sha256sum scrollback-0.15.0-arm64-v8a-release.apk`).
 
 > The repository is **private** for now, so these links only work for people with access until it
 > goes public.
@@ -213,7 +213,7 @@ app: **Settings → Updates → Check for update** ([how it works](docs/guide/up
 3. Install it:
 
    ```bash
-   adb install -r scrollback-0.14.1-arm64-v8a-release.apk
+   adb install -r scrollback-0.15.0-arm64-v8a-release.apk
    ```
 
    `-r` keeps your data when you install over an existing copy.
@@ -338,7 +338,8 @@ From [ROADMAP.md](ROADMAP.md):
 - [x] **0.13** Scrollback Player, a full movie player
 - [x] **0.14** Server connections, hide duplicates across servers, GPL-3.0-or-later
 - [x] **0.14.1** Privacy clean-up; VERT server is now vert.sh or your own (Custom)
-- [ ] **0.15** Polish: swipe between sub-tabs everywhere, size discipline, real HW/SW decoder label (coming soon)
+- [x] **0.15** Auto scroll, hold for 2×, keep screen on, Saved folder chooser, the feed keeps your place, Android 17 local network permission for servers
+- [ ] **0.16** Polish: swipe between sub-tabs everywhere, size discipline (coming soon)
 - [ ] **Later** Feed and gallery upgrades, music depth (offline cache, lyrics, Android Auto),
   file-manager power features, a public repository, F-Droid and Persian localisation (coming soon)
 

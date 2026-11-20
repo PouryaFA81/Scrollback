@@ -11,11 +11,48 @@ Ready-to-paste release notes for each version are in [docs/releases](docs/releas
 
 ### Coming soon
 
-See [ROADMAP.md](ROADMAP.md) for the full plan. Next up (0.15, polish):
+See [ROADMAP.md](ROADMAP.md) for the full plan. Next up (0.16, polish):
 
 - Swipe between sub-tabs in more places: the Feed's Random | Saved and the Watch sections
-- Scrollback Player's top bar shows whether the hardware or software decoder is really in use
 - Keeping the download size in check
+
+## [0.15.0] - 2026-11-20
+
+### Added
+
+- **Auto scroll.** The feed can move to the next item by itself: a video moves on when it ends
+  (even if looping is on), a picture after 3, 5 or 10 seconds. It waits while you touch the screen,
+  hold for 2× or have a sheet open. Turn it on from the feed's playback button (top right) or
+  **Settings → Playback**. Off by default.
+- **Press and hold for 2×** in the feed, Scrollback Player and Watch, with a **2×** pill and a short
+  buzz. Let go to return to your speed.
+- **Keep screen on while playing** in the feed, Scrollback Player and Watch. The screen can sleep
+  again when you pause. On by default; **Settings → Playback**.
+- **Saved: watch one folder.** A folder chip under the top bar of **Feed → Saved** picks All folders,
+  one folder or a subfolder, in saved order (newest or oldest first). The choice is remembered.
+- **Local network permission for servers (Android 17).** Adding or testing a server, connecting to
+  SFTP or SMB, or using a custom VERT server on your home network now asks for Android's local
+  network permission, with a short explanation, and says clearly what to do if it's denied.
+  Saved servers on your home network are checked once at launch.
+- `SECURITY.md` with a private contact for security reports (admin@homelabgate.lol), also used in
+  the contributing guide and the code of conduct.
+
+### Changed
+
+- **The Feed keeps your place.** Random and Saved each remember the video you were on (and how far
+  in), across tab switches, screen lock, the PIN lock and Android closing the app. Random keeps its
+  shuffled order until you reshuffle, even when videos are added or removed.
+- The feed's loop button now opens a small **playback menu**: Auto scroll, the picture time, and
+  **Loop it** or **Play the next one** when a video ends.
+- Scrollback Player's **HW / SW** label shows the decoder actually in use, not just the setting.
+  Formats without a hardware decoder on your phone (such as MPEG-2, or AV1 on most phones) show SW.
+
+### Fixed
+
+- The feed went back to the first video after locking and unlocking the phone, or after switching
+  between Random and Saved.
+- On Android 17, SFTP, SMB and home servers might not connect until Nearby share had been opened
+  once.
 
 ## [0.14.1] - 2026-11-20
 

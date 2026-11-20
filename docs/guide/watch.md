@@ -40,6 +40,8 @@ the next episode. Collections list their movies.
   subtitles are drawn into the video by the server when needed.
 - Your progress is reported to Jellyfin while you watch, so other Jellyfin apps pick up at the same
   spot.
+- **Press and hold** the video to watch at **2×**; let go to go back to normal speed.
+- The screen stays on while a video plays (**Settings → Playback → Keep screen on while playing**).
 
 ## Privacy
 

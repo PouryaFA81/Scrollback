@@ -87,6 +87,12 @@ Turn on **LAN bypass** or **split tunneling** in your VPN app, or add the addres
 the VPN as the server's **alternate address**. **Test connection** shows which address answers. See
 [Server connections](server-connections.md).
 
+### My home server stopped connecting after updating Android.
+
+Android 17 asks apps for permission to reach devices on your local network. Allow it when
+Scrollback asks, or turn it on in **Settings → Apps → Scrollback → Permissions → Nearby devices**.
+See [Local network access](server-connections.md#local-network-access-android-17).
+
 ### Every song shows up twice.
 
 That happens when two servers share one music folder.

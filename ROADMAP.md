@@ -94,7 +94,16 @@ especially over VPN, and a Nextcloud Music and a Navidrome often share one music
   tunnel can't reach a home server, so Test connection times out there. It needs a LAN bypass / split tunnel in the
   VPN app plus the server's LAN address as the alternate address, or a retest with the VPN off.
 
-## Phase A3: Polish (0.15)
+## 0.15: Feed comfort and Android 17 (done)
+
+**Result (0.15.0):** auto scroll (videos at the end, pictures after 3/5/10 s; pauses while touching,
+holding or with a sheet open), press-and-hold 2× in the feed, Scrollback Player and Watch, keep screen on
+while playing, a Saved-order folder chooser, a persisted feed position per tab (seed, item and playback
+time survive lock, PIN re-lock and process death; the shuffle is now stable when videos are added),
+the local-network permission requested for every server connection, the real HW/SW decoder label,
+and SECURITY.md with a contact address.
+
+## Phase A3: Polish (0.16)
 
 1. **Swipe between sub-tabs.** A HorizontalPager synced with the segmented/chip tabs: Library
    (Liked, Playlists, History, Search…), the Feed's Random|Saved, Music (Songs, Artists, Albums, Folders) and
@@ -102,8 +111,8 @@ especially over VPN, and a Nextcloud Music and a Navidrome often share one music
    the bottom nav and image zoom, where it would fight existing gestures.
 2. **Size discipline.** R8 plus resource shrinking, ABI splits (arm64-v8a, armeabi-v7a, universal) since
    0.6.0, and a per-release size table. Native players (libVLC) go in per-ABI APKs only.
-3. **Player decoder label.** The top bar's "HW" shows the setting, not the decoder in use: AV1 and MPEG-2
-   fall back to software on the A54 but still say HW. Read the real decoder from libVLC and show HW or SW.
+3. ~~**Player decoder label.**~~ Done in 0.15: the label checks the phone's hardware decoders for the
+   video's format and size, so AV1 and MPEG-2 on the A54 show SW.
 
 ## Phase B: Feed and gallery quality (next)
 

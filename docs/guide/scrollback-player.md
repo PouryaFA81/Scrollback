@@ -22,6 +22,7 @@ It plays local files, files from folders you picked with Android's folder picker
 | Gesture | What it does |
 |---|---|
 | Tap | Show or hide the controls |
+| Press and hold | Play at 2× while you hold, with a **2×** pill at the top. Let go to go back to your speed. Swipes are ignored while you hold. |
 | Swipe up or down on the left | Brightness |
 | Swipe up or down on the right | Volume |
 | Swipe sideways | Seek |
@@ -51,12 +52,16 @@ It plays local files, files from folders you picked with Android's folder picker
 - **Previous** and **next** video in the playlist.
 - **Resume:** picks up where you left off.
 - **Hardware or software decoding:** hardware is the default; switch if a video doesn't play well.
+- **Screen stays on** while a video plays, and can turn off again when you pause (**Settings →
+  Playback → Keep screen on while playing**).
 - **Picture-in-picture** and **background audio**, with a media notification.
 
 ## Good to know
 
-- The **HW** / **SW** label in the top bar shows the decoding setting you chose, not the decoder
-  actually in use. Showing the real decoder is **coming soon**.
+- The **HW** / **SW** label in the top bar shows the decoder that's **actually in use**. Even with
+  hardware decoding on, some formats are decoded in software because the phone has no hardware
+  decoder for them (for example MPEG-2, VC-1, or AV1 on phones without an AV1 chip). Those show
+  **SW**.
 - Scrollback Player isn't available on x86 devices, such as most emulators. It shows a notice there.
 - libVLC is LGPL-2.1-or-later and is included unmodified as separate libraries. See
   [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).

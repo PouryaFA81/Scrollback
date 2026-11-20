@@ -14,6 +14,8 @@ val releaseKeys = rootProject.file("keystore/keystore.properties").takeIf { it.i
     Properties().apply { f.inputStream().use { load(it) } }
 }
 
+val x86Emulator = providers.gradleProperty("sb.x86").orNull == "true"
+
 android {
     namespace = "app.scrollback"
     compileSdk {
@@ -58,6 +60,7 @@ android {
             isEnable = true
             reset()
             include("arm64-v8a", "armeabi-v7a")
+            if (x86Emulator) include("x86_64")
             isUniversalApk = true
         }
     }
@@ -70,7 +73,8 @@ android {
     packaging {
         // v0.13 libVLC: ARM only (x86 phones are practically gone; the player shows a notice there),
         // and compressed in the APK (extracted on install) so downloads stay as small as possible.
-        jniLibs.excludes += setOf("lib/x86/**", "lib/x86_64/**")
+        // `-Psb.x86=true` keeps x86_64 so a debug build runs on an x86_64 emulator (screenshots, testing).
+        if (!x86Emulator) jniLibs.excludes += setOf("lib/x86/**", "lib/x86_64/**") else jniLibs.excludes += setOf("lib/x86/**")
         jniLibs.useLegacyPackaging = true
         resources.pickFirsts += setOf("META-INF/LICENSE.md", "META-INF/NOTICE.md", "META-INF/LICENSE", "META-INF/NOTICE")
         resources.excludes += setOf("META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/BCKEY.*", "META-INF/BC*.SF", "META-INF/BC*.DSA", "META-INF/INDEX.LIST", "META-INF/DEPENDENCIES")

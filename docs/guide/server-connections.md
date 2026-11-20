@@ -58,6 +58,22 @@ a **Use …** button that saves it as the alternate address. Tap **Test again** 
 
 Passwords, tokens and other secrets are never shown in the results.
 
+## Local network access (Android 17)
+
+On Android 17 and newer, apps need your permission to connect to devices on your **local network**,
+like a home server, a NAS or a Jellyfin box at home. Scrollback asks for it when it's needed:
+
+- when you add a server or tap **Test connection**, if the address is on your home network,
+- when you connect to an SFTP or SMB server, or set a custom VERT server, on your home network,
+- once when you open the app, if a server you already added is on your home network.
+
+Scrollback first explains why, then Android shows its own **Allow** dialog. Servers on the internet
+don't need this permission.
+
+If you choose **Not now** or **Don't allow**, servers on your home network can't be reached, and
+Scrollback tells you so instead of failing quietly. To turn it on later, open **Settings → Apps →
+Scrollback → Permissions → Nearby devices** and allow it. Nearby share uses the same permission.
+
 ## Using a VPN on your phone
 
 If your phone's VPN sends **all** traffic through the tunnel, it may not be able to reach your home
