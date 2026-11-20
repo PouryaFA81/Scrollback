@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.feature.files
 
 import android.Manifest
@@ -36,6 +38,11 @@ import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.WifiTethering
+import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.outlined.Transform
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.MusicNote
@@ -45,6 +52,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -108,12 +116,15 @@ private fun shade(c: Category) = when (c) {
 fun FilesHomeScreen(
     onBrowse: (FileNode) -> Unit,
     onCategory: (Category) -> Unit,
+    onOpenTool: (String) -> Unit = {},
+    onOpenDoc: ((FileNode) -> Unit)? = null,
 ) {
     val container = LocalContainer.current
     val files = container.files
     val ctx = LocalContext.current
     val list = rememberLazyListState()
     val collapsed by list.collapsedState()
+    val remotes = container.accounts.accounts.collectAsStateWithLifecycle().value.filter { it.type.isNetworkStorage }
     var resumeTick by remember { mutableIntStateOf(0) }
     val owner = LocalLifecycleOwner.current
     DisposableEffect(owner) {
@@ -185,7 +196,7 @@ fun FilesHomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(SbSpace.s),
                     ) {
                         recent.forEach { n ->
-                            Column(Modifier.width(96.dp).clip(SbRadius.Card).clickable { openWith(ctx, n) }) {
+                            Column(Modifier.width(96.dp).clip(SbRadius.Card).clickable { if (onOpenDoc != null && app.scrollback.office.OfficeFormat.detect(n.name) != null) onOpenDoc(n) else if (isPlayable(n)) playNodes(ctx, listOf(n), n) else openWith(ctx, n) }) {
                                 FileThumb(n, Modifier.size(96.dp).clip(RoundedCornerShape(16.dp)), iconSize = 32.dp)
                                 Text(n.name, style = MaterialTheme.typography.labelSmall, color = SbColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(4.dp))
                             }
@@ -211,6 +222,14 @@ fun FilesHomeScreen(
                             onClick = { onBrowse(t) },
                         )
                     }
+                    remotes.forEach { a ->
+                        ListRow(
+                            title = a.displayName,
+                            subtitle = "${a.type.id.uppercase()} · ${container.remoteStorage.endpoint(a)?.label ?: a.baseUrl}",
+                            leading = { Icon(Icons.Outlined.Dns, null, tint = SbColors.TextPrimary) },
+                            onClick = { remoteRoot(a)?.let(onBrowse) },
+                        )
+                    }
                     ListRow(
                         title = "Add folder access",
                         subtitle = "Pick a folder to browse and manage (works without extra permissions)",
@@ -219,6 +238,7 @@ fun FilesHomeScreen(
                     )
                 }
             }
+            item { ToolsCard(onOpenTool) }
             if (!allFiles) {
                 item {
                     SectionCard(title = "Optional") {
@@ -285,5 +305,60 @@ private fun StorageCard(s: StorageSummary) {
                 }
             }
         }
+    }
+}
+
+/** Root folder node for an SFTP/SMB account. */
+fun remoteRoot(a: app.scrollback.accounts.ServerAccount): FileNode? {
+    val ep = app.scrollback.remote.fs.RemoteEndpoint.parse(a.type, a.baseUrl) ?: return null
+    return FileNode(
+        kind = app.scrollback.files.NodeKind.REMOTE, id = ep.root, name = a.displayName, isDir = true,
+        mime = android.provider.DocumentsContract.Document.MIME_TYPE_DIR, treeUri = a.id, path = ep.root,
+    )
+}
+
+/**
+ * Files → Tools: the file-manager add-ons live here, behind one card, so the tab bar stays at five
+ * and the Files home stays a file manager first.
+ */
+@Composable
+private fun ToolsCard(onOpenTool: (String) -> Unit) {
+    SectionCard(title = "Tools") {
+        ListRow(
+            title = "Network storage",
+            subtitle = "SFTP and SMB servers: browse, copy, stream into your feeds",
+            leading = { Icon(Icons.Outlined.Dns, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("remotes") },
+        )
+        ListRow(
+            title = "Notes",
+            subtitle = "Markdown and text notes with preview; works with an Obsidian vault",
+            leading = { Icon(Icons.AutoMirrored.Outlined.Notes, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("notes") },
+        )
+        ListRow(
+            title = "Archives",
+            subtitle = "Extract ZIP, TAR, GZ, XZ and 7z; compress files to ZIP",
+            leading = { Icon(Icons.Outlined.FolderZip, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("archives") },
+        )
+        ListRow(
+            title = "Nearby share",
+            subtitle = "Send and receive files with LocalSend and RSend on your Wi-Fi",
+            leading = { Icon(Icons.Outlined.WifiTethering, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("nearby") },
+        )
+        ListRow(
+            title = "Office",
+            subtitle = "PDF, Word, Excel, PowerPoint viewer; CSV and text editor",
+            leading = { Icon(Icons.Outlined.Description, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("office") },
+        )
+        ListRow(
+            title = "Convert (VERT)",
+            subtitle = "Convert videos via vertd; images, audio and docs in VERT",
+            leading = { Icon(Icons.Outlined.Transform, null, tint = SbColors.TextPrimary) },
+            onClick = { onOpenTool("convert") },
+        )
     }
 }

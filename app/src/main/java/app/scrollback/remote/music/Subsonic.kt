@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.remote.music
 
 import app.scrollback.accounts.ServerAccount
@@ -46,12 +48,18 @@ object SubsonicAuth {
 }
 
 /** Subsonic / OpenSubsonic client (Navidrome, Nextcloud Music, Airsonic, Gonic…). */
-class SubsonicClient(private val http: OkHttpClient, private val account: ServerAccount, private val password: String) {
+class SubsonicClient(
+    private val http: OkHttpClient,
+    private val account: ServerAccount,
+    private val password: String,
+    /** Exactly this address, no alternate-address fallback ("Test connection"). */
+    private val direct: Boolean = false,
+) {
     fun url(endpoint: String, params: String = ""): String =
         "${account.baseUrl}/rest/$endpoint.view?" + SubsonicAuth.query(account.loginName, password) + if (params.isNotEmpty()) "&$params" else ""
 
     fun call(endpoint: String, params: String = ""): JSONObject =
-        http.newCall(Request.Builder().url(url(endpoint, params)).build()).execute().use { r ->
+        http.newCall(Request.Builder().url(url(endpoint, params)).apply { if (direct) tag(app.scrollback.remote.DirectAddress::class.java, app.scrollback.remote.DirectAddress) }.build()).execute().use { r ->
             if (!r.isSuccessful) throw HttpException(r.code, "$endpoint failed")
             SubsonicAuth.unwrap(r.body.string())
         }
@@ -110,6 +118,7 @@ class SubsonicMediaSource(
             album = album,
             title = title,
             trackNo = s.optInt("track"),
+            discNo = s.optInt("discNumber"),
             durationMs = s.optLong("duration") * 1000,
             remoteLiked = s.has("starred"),
         )

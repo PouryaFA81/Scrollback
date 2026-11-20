@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.files
 
 /** Pure sorting for file lists: folders first, then by the chosen key (unit-tested). */

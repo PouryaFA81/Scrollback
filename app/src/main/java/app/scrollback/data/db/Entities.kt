@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.data.db
 
 import androidx.room.ColumnInfo
@@ -76,6 +78,8 @@ data class MediaEntity(
     val album: String? = null,
     val title: String? = null,
     @ColumnInfo(defaultValue = "0") val trackNo: Int = 0,
+    /** v0.14: disc number (0 = unknown). */
+    @ColumnInfo(defaultValue = "0") val discNo: Int = 0,
     /** Server-side id (Nextcloud fileid, Subsonic/Jellyfin item id). */
     val remoteId: String? = null,
 )

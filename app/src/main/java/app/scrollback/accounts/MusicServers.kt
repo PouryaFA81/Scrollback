@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.accounts
 
 import app.scrollback.data.repo.LibraryRepository
 import app.scrollback.data.source.MediaSourceRegistry
 import app.scrollback.data.source.SourceType
+import app.scrollback.remote.DirectAddress
+import app.scrollback.remote.HttpException
 import app.scrollback.remote.RemoteAuth
 import app.scrollback.remote.music.JellyfinAuth
 import app.scrollback.remote.music.JellyfinClient
@@ -33,6 +37,14 @@ class MusicServers(
     init {
         servers.registerInstaller(AccountType.SUBSONIC) { a, secret -> subsonic[a.id] = SubsonicClient(http, a, secret) }
         servers.registerInstaller(AccountType.JELLYFIN) { a, token -> auth.setHeaders(a.baseUrl, JellyfinAuth.authHeaders(a.id, appVersion, token)) }
+        servers.registerChecker(AccountType.SUBSONIC) { a, base ->
+            val secret = accounts.secret(a.id) ?: throw HttpException(401, "No saved password")
+            SubsonicClient(http, a.copy(baseUrl = base), secret, direct = true).ping()
+        }
+        servers.registerChecker(AccountType.JELLYFIN) { a, base ->
+            val req = okhttp3.Request.Builder().url("$base/Users/${a.userId}").tag(DirectAddress::class.java, DirectAddress).build()
+            http.newCall(req).execute().use { r -> if (!r.isSuccessful) throw HttpException(r.code, "Jellyfin user check failed") }
+        }
         auth.setResolver("subsonic") { u -> parse(u)?.let { (acc, id) -> subsonicClient(acc)?.streamUrl(id) } }
         auth.setResolver("subsonic-cover") { u -> parse(u)?.let { (acc, id) -> subsonicClient(acc)?.coverUrl(id) } }
         auth.setResolver("jellyfin") { u -> parse(u)?.let { (acc, id) -> accounts.get(acc)?.let { JellyfinClient(http, it).streamUrl(id) } } }
@@ -60,7 +72,7 @@ class MusicServers(
 
     /** Validates the credentials, stores the account (password/token encrypted) and indexes its library. */
     suspend fun signIn(type: AccountType, url: String, user: String, password: String): ServerAccount = withContext(Dispatchers.IO) {
-        val base = ServerAccount.normaliseUrl(url)
+        val base = canonicalBase(type, url)
         val account = when (type) {
             AccountType.SUBSONIC -> {
                 val a = ServerAccount(type = type, baseUrl = base, loginName = user)
@@ -76,9 +88,21 @@ class MusicServers(
                 a
             }
             AccountType.NEXTCLOUD -> error("Use Login Flow v2 for Nextcloud")
+            AccountType.SFTP, AccountType.SMB -> error("Use Files → Network storage")
         }
         addSource(account.id)
         account
+    }
+
+    /**
+     * The address to save for a new server: follows redirects first (http to https, bare domain to
+     * www, sub-paths) so the stored address is the one the server really answers on.
+     */
+    private fun canonicalBase(type: AccountType, typed: String): String {
+        val kind = ServerManager.probeKind(type) ?: return ServerAccount.normaliseUrl(typed)
+        val p = servers.resolveNewAddress(kind, typed)
+        if (!p.reachable) throw java.io.IOException(p.problem ?: "Server not reachable")
+        return if (p.recognised) p.canonical ?: p.address else p.address
     }
 
     suspend fun addSource(accountId: String) {

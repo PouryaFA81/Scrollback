@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.feature.settings
 
 import androidx.compose.foundation.layout.PaddingValues
@@ -52,6 +54,7 @@ fun SettingsScreen(
     onOpenFolders: () -> Unit,
     onOpenDuplicates: () -> Unit,
     onOpenServers: () -> Unit,
+    onOpenLicenses: () -> Unit = {},
     onBack: (() -> Unit)? = null,
 ) {
     val container = LocalContainer.current
@@ -113,7 +116,7 @@ fun SettingsScreen(
                     RowDivider()
                     SettingsRow(
                         "Servers",
-                        subtitle = if (accounts.isEmpty()) "Nextcloud streaming & sync — optional" else accounts.joinToString { it.displayName },
+                        subtitle = accounts.filterNot { it.type.isNetworkStorage }.let { a -> if (a.isEmpty()) "Nextcloud, Subsonic and Jellyfin, all optional" else a.joinToString { it.displayName } },
                         icon = Icons.Outlined.Cloud,
                         onClick = onOpenServers,
                     )
@@ -144,6 +147,14 @@ fun SettingsScreen(
                         icon = Icons.Outlined.LibraryMusic,
                         onClick = { launch { settingsStore.setShowMusic(!settings.showMusic) } },
                         trailing = { Toggle(settings.showMusic) { v -> launch { settingsStore.setShowMusic(v) } } },
+                    )
+                    RowDivider()
+                    SettingsRow(
+                        "Hide duplicates across servers",
+                        subtitle = "Show a song once when several servers or folders have it. Nothing is deleted. Source order: Servers screen",
+                        icon = Icons.Outlined.LibraryMusic,
+                        onClick = { launch { settingsStore.setHideMusicDuplicates(!settings.hideMusicDuplicates) } },
+                        trailing = { Toggle(settings.hideMusicDuplicates) { v -> launch { settingsStore.setHideMusicDuplicates(v) } } },
                     )
                 }
             }
@@ -186,12 +197,20 @@ fun SettingsScreen(
                     )
                 }
             }
+            item { UpdatesSection() }
             item {
                 SectionCard(title = "About") {
                     SettingsRow(
                         "Scrollback ${BuildConfigInfo.versionName(ctx)}",
-                        subtitle = "Offline and private: nothing leaves this device.\nComing next: file manager · Nextcloud streaming & sync · music player",
+                        subtitle = "Offline-first and private. Nothing leaves this device unless you add a server or tap Check for update.",
                         icon = Icons.Outlined.Info,
+                    )
+                    RowDivider()
+                    SettingsRow(
+                        "Open-source licenses",
+                        subtitle = "Scrollback is GPL-3.0-or-later · third-party notices",
+                        icon = Icons.Outlined.Info,
+                        onClick = onOpenLicenses,
                     )
                 }
             }

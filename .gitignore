@@ -9,3 +9,7 @@ local.properties
 captures/
 dist/
 .DS_Store
+
+# Release signing (never commit)
+keystore/
+keystore.properties

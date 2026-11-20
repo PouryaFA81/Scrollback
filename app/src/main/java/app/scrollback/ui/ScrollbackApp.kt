@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.ui
 
 import androidx.compose.animation.AnimatedContent
@@ -101,6 +103,20 @@ private fun AppNav() {
     androidx.compose.runtime.LaunchedEffect(activity) {
         activity?.openPlayerRequests?.collect { open -> if (open) { activity.openPlayerRequests.value = false; nav.navigate("player") { launchSingleTop = true } } }
     }
+    // "Open with Scrollback" from other apps (PDF, Office, CSV, text).
+    val container = LocalContainer.current
+    androidx.compose.runtime.LaunchedEffect(activity) {
+        activity?.nearbyRequests?.collect { open -> if (open) { activity.nearbyRequests.value = false; nav.navigate("nearby") { launchSingleTop = true } } }
+    }
+    androidx.compose.runtime.LaunchedEffect(activity) {
+        activity?.openDocRequests?.collect { intent ->
+            val uri = intent?.data ?: return@collect
+            activity.openDocRequests.value = null
+            val writable = intent.flags and android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION != 0
+            val node = runCatching { container.office.nodeFor(uri, intent.type, writable) }.getOrNull() ?: return@collect
+            nav.navigate("doc?file=${FileRoute.encodeFile(node)}")
+        }
+    }
     NavHost(
         navController = nav,
         startDestination = "tabs",
@@ -122,15 +138,46 @@ private fun AppNav() {
                 openPlayer = { nav.navigate("player") { launchSingleTop = true } },
                 openBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") },
                 openCategory = { nav.navigate("category/${it.name}") },
+                openTool = { nav.navigate(it) },
+            )
+        }
+        composable("remotes") {
+            app.scrollback.feature.files.RemoteStorageScreen(
+                onBack = { nav.popBackStack() },
+                onBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") },
             )
         }
         composable("browse?root={root}", arguments = listOf(navArgument("root") { type = NavType.StringType; defaultValue = "" })) { entry ->
             val root = FileRoute.decode(entry.arguments?.getString("root").orEmpty())
-            if (root != null) FileBrowserScreen(root, onBack = { nav.popBackStack() }) else nav.popBackStack()
+            if (root != null) FileBrowserScreen(root, onBack = { nav.popBackStack() }, onOpenNote = { nav.navigate("note?file=${FileRoute.encodeFile(it)}") }, onConvert = { nav.navigate("convert?file=${FileRoute.encodeFile(it)}") }, onOpenDoc = { nav.navigate("doc?file=${FileRoute.encodeFile(it)}") }, onSendNearby = { container.nearby.queueNodes(it); nav.navigate("nearby") }) else nav.popBackStack()
+        }
+        composable("note?file={file}", arguments = listOf(navArgument("file") { type = NavType.StringType; defaultValue = "" })) { entry ->
+            val file = FileRoute.decode(entry.arguments?.getString("file").orEmpty())
+            if (file != null) app.scrollback.feature.notes.NoteEditorScreen(file, onBack = { nav.popBackStack() }) else nav.popBackStack()
+        }
+        composable("notes") {
+            app.scrollback.feature.notes.NotesScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate("note?file=${FileRoute.encodeFile(it)}") })
+        }
+        composable("convert?file={file}", arguments = listOf(navArgument("file") { type = NavType.StringType; defaultValue = "" })) { entry ->
+            val file = entry.arguments?.getString("file").orEmpty().takeIf { it.isNotEmpty() }?.let { FileRoute.decode(it) }
+            app.scrollback.feature.convert.ConvertScreen(file, onBack = { nav.popBackStack() })
+        }
+        composable("office") {
+            app.scrollback.feature.office.OfficeToolScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate("doc?file=${FileRoute.encodeFile(it)}") })
+        }
+        composable("doc?file={file}", arguments = listOf(navArgument("file") { type = NavType.StringType; defaultValue = "" })) { entry ->
+            val file = FileRoute.decode(entry.arguments?.getString("file").orEmpty())
+            if (file != null) app.scrollback.feature.office.DocumentScreen(file, onBack = { nav.popBackStack() }) else nav.popBackStack()
+        }
+        composable("nearby") {
+            app.scrollback.feature.nearby.NearbyScreen(onBack = { nav.popBackStack() })
+        }
+        composable("archives") {
+            app.scrollback.feature.files.ArchivesToolScreen(onBack = { nav.popBackStack() }, onBrowse = { nav.navigate("browse?root=${FileRoute.encode(it)}") })
         }
         composable("category/{cat}") { entry ->
             val cat = runCatching { Category.valueOf(entry.arguments?.getString("cat").orEmpty()) }.getOrDefault(Category.VIDEOS)
-            CategoryScreen(cat, onBack = { nav.popBackStack() })
+            CategoryScreen(cat, onBack = { nav.popBackStack() }, onOpenDoc = { nav.navigate("doc?file=${FileRoute.encodeFile(it)}") }, onSendNearby = { container.nearby.queueNodes(it); nav.navigate("nearby") })
         }
         composable(
             "feed/{kind}?arg={arg}&start={start}",
@@ -158,9 +205,11 @@ private fun AppNav() {
                 onOpenFolders = { nav.navigate("folders") },
                 onOpenDuplicates = { nav.navigate("duplicates") },
                 onOpenServers = { nav.navigate("servers") },
+                onOpenLicenses = { nav.navigate("licenses") },
                 onBack = { nav.popBackStack() },
             )
         }
+        composable("licenses") { app.scrollback.feature.about.OpenSourceLicensesScreen(onBack = { nav.popBackStack() }) }
         composable("folders") { FoldersScreen(onBack = { nav.popBackStack() }) }
         composable("servers") { ServersScreen(onBack = { nav.popBackStack() }, onBrowseNextcloud = { nav.navigate("nextcloud/$it") }) }
         composable("nextcloud/{account}") { e -> NextcloudBrowseScreen(e.arguments?.getString("account").orEmpty(), onBack = { nav.popBackStack() }) }
@@ -168,6 +217,35 @@ private fun AppNav() {
         composable("music/{kind}?arg={arg}", arguments = listOf(navArgument("kind") { type = NavType.StringType }, navArgument("arg") { type = NavType.StringType; defaultValue = "" })) { e ->
             val spec = MusicList.from(e.arguments?.getString("kind").orEmpty(), e.arguments?.getString("arg").orEmpty())
             MusicListScreen(spec, onBack = { nav.popBackStack() }, onOpenPlayer = { nav.navigate("player") { launchSingleTop = true } })
+        }
+        // v0.12 Watch (Library → Watch): Jellyfin movies and shows.
+        composable("watch") {
+            app.scrollback.feature.watch.WatchHomeScreen(
+                onBack = { nav.popBackStack() },
+                onOpenItem = { nav.navigate("watch/item/$it") },
+                onPlay = { id, fromStart -> nav.navigate("watch/play/$id?start=${if (fromStart) 1 else 0}") },
+                onSearch = { nav.navigate("watch/search") },
+                onOpenServers = { nav.navigate("servers") },
+            )
+        }
+        composable("watch/search") {
+            app.scrollback.feature.watch.WatchSearchScreen(onBack = { nav.popBackStack() }, onOpenItem = { nav.navigate("watch/item/$it") })
+        }
+        composable("watch/item/{id}") { e ->
+            app.scrollback.feature.watch.WatchDetailScreen(
+                e.arguments?.getString("id").orEmpty(),
+                onBack = { nav.popBackStack() },
+                onOpenItem = { nav.navigate("watch/item/$it") },
+                onPlay = { id, fromStart -> nav.navigate("watch/play/$id?start=${if (fromStart) 1 else 0}") },
+            )
+        }
+        composable(
+            "watch/play/{id}?start={start}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType }, navArgument("start") { type = NavType.IntType; defaultValue = 0 }),
+            enterTransition = { fadeIn(tween(200)) },
+            popExitTransition = { fadeOut(tween(200)) },
+        ) { e ->
+            app.scrollback.feature.watch.WatchPlayerScreen(e.arguments?.getString("id").orEmpty(), fromStart = e.arguments?.getInt("start") == 1, onBack = { nav.popBackStack() })
         }
         composable(
             "player",
@@ -189,6 +267,7 @@ private fun MainTabs(
     openPlayer: () -> Unit,
     openBrowse: (FileNode) -> Unit,
     openCategory: (Category) -> Unit,
+    openTool: (String) -> Unit,
 ) {
     val container = LocalContainer.current
     val haptics = rememberHaptics()
@@ -238,9 +317,9 @@ private fun MainTabs(
                         }
                     }
                     "pictures" -> PicturesScreen(onOpen = openFeed)
-                    "files" -> FilesHomeScreen(onBrowse = openBrowse, onCategory = openCategory)
+                    "files" -> FilesHomeScreen(onBrowse = openBrowse, onCategory = openCategory, onOpenTool = openTool, onOpenDoc = { openTool("doc?file=${FileRoute.encodeFile(it)}") })
                     "music" -> if (settings.showMusic) MusicScreen(onOpenList = openMusicList, onOpenPlaylist = openPlaylist, onOpenPlayer = openPlayer, onOpenServers = openServers) else androidx.compose.runtime.LaunchedEffect(Unit) { tab = "feed" }
-                    else -> LibraryScreen(onOpen = openFeed, onOpenPlaylist = openPlaylist, onOpenDuplicates = openDuplicates)
+                    else -> LibraryScreen(onOpen = openFeed, onOpenPlaylist = openPlaylist, onOpenDuplicates = openDuplicates, onOpenWatch = { openTool("watch") })
                 }
             }
             if (tab != "feed") {

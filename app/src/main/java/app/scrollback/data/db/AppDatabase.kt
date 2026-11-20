@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.data.db
 
 import android.content.Context
@@ -17,7 +19,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PlaylistEntry::class,
         SyncTombstone::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,13 +31,20 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "scrollback.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
 
         /** v0.3: remote sources (accounts, previews, offline copies), sync clocks, music tags. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 MIGRATION_1_2_SQL.forEach(db::execSQL)
+            }
+        }
+
+        /** v0.14: disc numbers (for matching the same song on several music servers). */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE media ADD COLUMN discNo INTEGER NOT NULL DEFAULT 0")
             }
         }
 

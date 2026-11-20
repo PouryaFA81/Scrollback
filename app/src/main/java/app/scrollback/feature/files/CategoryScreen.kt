@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.feature.files
 
 import android.app.Activity
@@ -28,6 +30,7 @@ import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.WifiTethering
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -64,7 +67,7 @@ import app.scrollback.ui.theme.SbSpace
 import kotlinx.coroutines.launch
 
 @Composable
-fun CategoryScreen(category: Category, onBack: () -> Unit) {
+fun CategoryScreen(category: Category, onBack: () -> Unit, onOpenDoc: ((FileNode) -> Unit)? = null, onSendNearby: ((List<FileNode>) -> Unit)? = null) {
     val container = LocalContainer.current
     val files = container.files
     val ctx = LocalContext.current
@@ -107,6 +110,7 @@ fun CategoryScreen(category: Category, onBack: () -> Unit) {
                             Toast.makeText(ctx, "Open a folder in Files, then Paste", Toast.LENGTH_SHORT).show()
                         },
                         BarAction("Share", Icons.Outlined.Share) { shareNodes(ctx, selected) },
+                        *(if (onSendNearby != null) arrayOf(BarAction("Send nearby", Icons.Outlined.WifiTethering) { val sel = selected; selection = emptySet(); onSendNearby(sel) }) else emptyArray()),
                         BarAction("Delete", Icons.Outlined.Delete) {
                             if (files.hasAllFilesAccess()) deleting = selected
                             else {
@@ -137,7 +141,7 @@ fun CategoryScreen(category: Category, onBack: () -> Unit) {
             }
             items(shown, key = { it.key }, span = { GridItemSpan(1) }) { n ->
                 val sel = n.key in selection
-                val click: () -> Unit = { if (selection.isNotEmpty()) { selection = if (sel) selection - n.key else selection + n.key } else { openWith(ctx, n) } }
+                val click: () -> Unit = { if (selection.isNotEmpty()) { selection = if (sel) selection - n.key else selection + n.key } else if (onOpenDoc != null && app.scrollback.office.OfficeFormat.detect(n.name) != null) onOpenDoc(n) else if (isPlayable(n)) playNodes(ctx, shown, n) else { openWith(ctx, n) } }
                 val long: () -> Unit = { haptics.tick(); selection = selection + n.key }
                 if (settings.filesGrid) FileTile(n, sel, click, long) else FileRow(n, sel, click, long)
             }
