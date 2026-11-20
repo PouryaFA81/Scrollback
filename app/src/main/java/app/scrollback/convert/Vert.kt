@@ -25,7 +25,6 @@ data class VertConfig(val instance: String = DEFAULT_INSTANCE, val vertd: String
     companion object {
         const val DEFAULT_INSTANCE = "https://vert.sh"
         const val DEFAULT_VERTD = "https://vertd.vert.sh"
-        const val HOMELAB_INSTANCE = "https://vert.example.com"
 
         /** "vert.sh/" -> "https://vert.sh"; blank stays blank. */
         fun normalize(url: String): String {
