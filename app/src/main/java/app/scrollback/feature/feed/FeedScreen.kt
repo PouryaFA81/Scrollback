@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.feature.feed
 
 import android.view.ViewGroup
@@ -299,8 +301,17 @@ private fun FeedPager(
         }
     }
 
+    // v0.13: files Media3 can't decode (MPEG-2, VC-1, DTS, AVI/WMV…) open in the full player instead.
+    val fellBack = remember { mutableSetOf<Long>() }
     DisposableEffect(player) {
         val listener = object : Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                val id = currentId ?: return
+                if (!app.scrollback.fullplayer.FullPlayer.isDecoderError(error.errorCode) || !fellBack.add(id)) return
+                val item = byId[id] ?: return
+                android.widget.Toast.makeText(context, "Opening in the full player…", android.widget.Toast.LENGTH_SHORT).show()
+                container.appScope.launch { app.scrollback.fullplayer.FullPlayer.playMedia(context, container, item) }
+            }
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_ENDED && player.repeatMode == Player.REPEAT_MODE_OFF) {
                     currentId?.let { id -> container.appScope.launch { repo.savePosition(id, 0) } }

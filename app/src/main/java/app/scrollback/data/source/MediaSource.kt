@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Pourya FA
 package app.scrollback.data.source
 
 import android.net.Uri
@@ -18,7 +20,13 @@ enum class SourceType(val id: String) {
     SUBSONIC("subsonic"),
 
     /** A Jellyfin server's music library. */
-    JELLYFIN("jellyfin");
+    JELLYFIN("jellyfin"),
+
+    /** A folder on an SFTP server (v0.7), streamed via `rfs://` URIs. */
+    SFTP("sftp"),
+
+    /** A folder on an SMB2/3 share (v0.7), streamed via `rfs://` URIs. */
+    SMB("smb");
 
     companion object {
         fun from(id: String): SourceType = entries.firstOrNull { it.id == id } ?: SAF_TREE
@@ -41,6 +49,8 @@ data class ScannedEntry(
     val album: String? = null,
     val title: String? = null,
     val trackNo: Int = 0,
+    /** v0.14: disc number (0 = unknown), used to tell apart same-numbered tracks across discs. */
+    val discNo: Int = 0,
     val durationMs: Long = 0,
     /** Server-side favourite (Subsonic star / Jellyfin favourite); null when the source has none. */
     val remoteLiked: Boolean? = null,
