@@ -70,7 +70,8 @@ Scrollback signs in once and keeps only Jellyfin's access token, stored encrypte
 Your password is not kept. Scrollback streams your music libraries; **favourites** in Jellyfin
 show up as likes and the other way round.
 
-> Jellyfin **videos** in the feeds are **Coming soon**. Today only music is used from Jellyfin.
+The same Jellyfin account also gives you movies and shows under **Library → Watch**. See
+[Watch](watch.md).
 
 ### After connecting
 
@@ -79,13 +80,47 @@ tab. If you need to index a server again, tap it in **Settings → Servers** and
 library**. **Sign out** forgets the credentials and the server's songs on your phone; nothing is
 deleted on the server.
 
+When you add a server, Scrollback follows any redirects and saves the address the server really
+answers on.
+
 ### Nextcloud
 
 Audio in Nextcloud folders you have added as sources plays in the Music tab too. See
 [Nextcloud](nextcloud.md).
 
+## Alternate address and Test connection
+
+Tap a Subsonic / OpenSubsonic or Jellyfin server in **Settings → Servers** to set an **Alternate
+address** (for example `http://192.168.1.10:4533` at home and a VPN address away) or run **Test
+connection**. See [Server connections](server-connections.md).
+
+> **Using a VPN on your phone?** If your VPN sends all traffic through the tunnel, your home
+> server may be unreachable while it's on. Turn on **LAN bypass** or **split tunneling** in your VPN
+> app, or add the address that works over the VPN as the server's
+> [alternate address](server-connections.md#alternate-address).
+
+## Hide duplicates across servers
+
+If the same songs are on more than one server, for example when Nextcloud Music and Navidrome
+share one music folder, every song shows up twice. To show each song once:
+
+1. Open **Settings** and turn on **Hide duplicates across servers** under **Music**. The same
+   switch is also on the **Servers** screen, in the **Music from several sources** card.
+2. On the **Servers** screen, use the arrows in that card to put your sources in order. The first
+   one is your **preferred source**: merged songs play from it.
+
+Songs count as the same when their title, artist and album match and their length is within a
+couple of seconds (and their track numbers match, when both copies have one). Albums and artists
+are merged too.
+
+- Merged songs show a small **2 sources** label (or more, if there are more copies).
+- **Long-press** a merged song, or tap **More** and then **Play from…**, to play a different copy.
+- **Liking** a merged song likes every copy, and stars or favourites it on each server that
+  supports that.
+- It only changes what you see. **Nothing is deleted** on your phone or on any server, and you can
+  turn it off any time.
+
 ## Coming soon
 
 - **Scrobbling** to Subsonic servers
 - **Lyrics**
-- **Jellyfin videos** in the feeds

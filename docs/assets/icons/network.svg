@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56" role="img" aria-label="Network storage icon">
+<title>Network storage</title>
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.10"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient></defs>
+<rect x="0.5" y="0.5" width="55" height="55" rx="16" fill="#000000"/>
+<rect x="0.5" y="0.5" width="55" height="55" rx="16" fill="url(#g)" stroke="#FFFFFF" stroke-opacity="0.16"/>
+<g transform="translate(16,16)" fill="none" stroke="#F2F2F2" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="6" rx="1.5"/><path d="M12 9v4M5 13h14M5 13v3M19 13v3M12 13v3"/><rect x="2.5" y="16" width="5" height="4" rx="1"/><rect x="9.5" y="16" width="5" height="4" rx="1"/><rect x="16.5" y="16" width="5" height="4" rx="1"/></g>
+</svg>

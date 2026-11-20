@@ -2,6 +2,9 @@
 
 [← Guide index](README.md)
 
+This page is about the notes and tags you attach to videos and pictures. To write and edit
+Markdown or text files, see the [Notes editor](notes-editor.md).
+
 ## Add a note and tags
 
 1. In any feed, tap **Notes** on the right.

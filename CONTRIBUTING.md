@@ -8,8 +8,8 @@ By taking part, you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Ways to help
 
 - **Report a bug.** Use the [bug report form](https://github.com/PouryaFA81/Scrollback/issues/new?template=bug_report.yml).
-  Testing on real phones and real servers is especially valuable right now: the file manager,
-  Nextcloud, Subsonic / OpenSubsonic and Jellyfin support are new and still in early testing.
+  Testing on real phones and real servers is especially valuable right now: the server connections,
+  Watch (Jellyfin video), Nearby share and SMB are new and still in early testing.
 - **Suggest a feature.** Use the [feature request form](https://github.com/PouryaFA81/Scrollback/issues/new?template=feature_request.yml).
   Please check the [roadmap](ROADMAP.md) and existing issues first.
 - **Improve the docs.** The [user guide](docs/guide/README.md) should match what the app really does.
@@ -67,6 +67,12 @@ and the design system (colours, spacing, glass components and motion).
 - UI uses Jetpack Compose and the tokens and components in `ui/theme` and `ui/components`. Please
   reuse them rather than adding new colours or one-off styles.
 - Write user-facing text in plain, friendly English.
+- Every Kotlin source file starts with an SPDX license header. Please add it to new files:
+
+  ```kotlin
+  // SPDX-License-Identifier: GPL-3.0-or-later
+  // Copyright (C) 2026 Pourya FA
+  ```
 
 ### Commit messages
 
@@ -80,5 +86,10 @@ Please **don't** report security problems in public issues. Contact the maintain
 
 ## License
 
-Scrollback's license is **to be decided**. It will be chosen before the repository goes public.
-Until then, please open an issue before starting a large contribution so we can talk about it.
+Scrollback is licensed under the **GNU General Public License v3.0 or later**
+([GPL-3.0-or-later](LICENSE)). By contributing, you agree that your contributions are licensed
+under the same terms.
+
+If you add a third-party library, make sure its license is compatible with the GPLv3, and add it to
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and to the in-app list in
+`feature/about/OpenSourceLicenses.kt`. Please don't copy code from other apps.

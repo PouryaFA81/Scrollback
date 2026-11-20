@@ -25,8 +25,26 @@ Scrollback never sees your Nextcloud password. Nextcloud gives it an **app passw
 stored encrypted on your phone and is never written to logs or to the app's database. You can revoke
 it at any time in your Nextcloud under **Settings → Security**.
 
+When you add the server, Scrollback follows any redirects and saves the address your Nextcloud
+really answers on. The sign-in stays on that address.
+
 > **Local servers:** for a server on your home network without HTTPS, type the address with
-> `http://` in front, for example `http://nextcloud.example.lan`. Only do this on a network you trust.
+> `http://` in front, for example `http://192.168.1.10`. Only do this on a network you trust.
+
+## Home and away: alternate address and Test connection
+
+Tap your Nextcloud account in **Settings → Servers** to find two more options:
+
+- **Alternate address**: a second address for the same server, for example your LAN address at
+  home and a VPN address when you're away. Scrollback switches between the two automatically.
+- **Test connection**: checks each address and tells you in plain words what's wrong, if anything.
+
+See [Server connections](server-connections.md) for details.
+
+> **Using a VPN on your phone?** If your VPN sends all traffic through the tunnel, your home
+> server may be unreachable while it's on. Turn on **LAN bypass** or **split tunneling** in your VPN
+> app, or add the address that works over the VPN as the server's
+> [alternate address](server-connections.md#alternate-address).
 
 ## Stream a folder into your feeds
 

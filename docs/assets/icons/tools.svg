@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56" role="img" aria-label="File tools icon">
+<title>File tools</title>
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.10"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient></defs>
+<rect x="0.5" y="0.5" width="55" height="55" rx="16" fill="#000000"/>
+<rect x="0.5" y="0.5" width="55" height="55" rx="16" fill="url(#g)" stroke="#FFFFFF" stroke-opacity="0.16"/>
+<g transform="translate(16,16)" fill="none" stroke="#F2F2F2" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.75h8l4 4v14.5H6z"/><path d="M14 2.75v4h4"/><path d="M9 12h6M9 15.5h6M9 19h3.5"/></g>
+</svg>
